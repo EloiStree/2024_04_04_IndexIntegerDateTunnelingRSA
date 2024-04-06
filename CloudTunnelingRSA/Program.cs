@@ -94,7 +94,7 @@ partial class WebSocketServer
         try
         {
             byte[] buffer = new byte[BufferSize];
-            byte[] receivedMessageBytes = new byte[32];
+            byte[] receivedMessageBytes = new byte[16];
 
 
             Console.WriteLine($"A{" "}");
@@ -112,7 +112,7 @@ partial class WebSocketServer
                     if (connectionHandShake != null && connectionHandShake.WasReceivedValide())
                     {
 
-                        Array.Copy(buffer, receivedMessageBytes, 32);
+                        Array.Copy(buffer, receivedMessageBytes, 16);
                         ServerConsole.WriteLine($"> Try to push bytes: {buffer.Length}");
                         await TryPushInRedirection(webSocket, receivedMessageBytes);
                         continue;

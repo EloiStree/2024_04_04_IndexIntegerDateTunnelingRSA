@@ -17,9 +17,7 @@ MonoBehaviour:
   m_ModuleName: Android
   m_PlatformBuildProfile:
     rid: 8110150703853076482
-  m_Scenes:
-  - m_enabled: 1
-    m_path: Assets/2024_04_04_GenereteEthereumAndRsaKeyInUnity/Demo.unity
+  m_Scenes: []
   references:
     version: 2
     RefIds:

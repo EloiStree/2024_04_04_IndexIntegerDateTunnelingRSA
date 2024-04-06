@@ -17,7 +17,13 @@ public class ConnectToRelayServerTunnelingRsaMono : MonoBehaviour
     public string m_publicKey = "<RSAKeyValue><Modulus>vP7yDAkjkLrO7zqlaOlVpi3h7knD2xU4voEj3w9aJ9Pm/J0WADOOpnGcBc25VI7yuZuJZjsLuK9dz6aFVQR2+ZpT7H1aD/7qgXG10eIrOSu41ZIpcO26VDFcfsX1as7kmAQmLqFFTzcL2Yzv5Vz3982QeFy5Sx4MIRa26fbrKOE=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
 
 
-    public AbstractConnectionToWebSocketClient m_socketConnection;
+    public delegate void OnMessageReceivedText(string message);
+    public delegate void OnMessageReceivedBinary(byte[] message);
+
+
+    public OnMessageReceivedText    m_onThreadMessageReceivedText;
+    public OnMessageReceivedBinary  m_onThreadMessageReceivedBinary;
+
 
     void Start()
     {
@@ -190,6 +196,8 @@ public class ConnectToRelayServerTunnelingRsaMono : MonoBehaviour
             {
                 string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
                     m_lastMessageReceived = receivedMessage;
+                    if(m_onThreadMessageReceivedText!=null)
+                       m_onThreadMessageReceivedText(receivedMessage);
                 if (!m_connectionEstablishedAndVerified)
                 {
                     if (receivedMessage.Contains("SIGNIN:"))
@@ -208,6 +216,8 @@ public class ConnectToRelayServerTunnelingRsaMono : MonoBehaviour
                     byte[] receivedMessage = new byte[result.Count];
                     Array.Copy(buffer, receivedMessage, result.Count);
                     m_lastMessageReceivedAsByte = receivedMessage;
+                    if(m_onThreadMessageReceivedBinary!=null)
+                        m_onThreadMessageReceivedBinary(receivedMessage);
             }
         }
     }
