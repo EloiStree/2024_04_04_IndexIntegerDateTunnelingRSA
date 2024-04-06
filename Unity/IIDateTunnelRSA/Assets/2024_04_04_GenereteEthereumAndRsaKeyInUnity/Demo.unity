@@ -148,7 +148,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a95a4ea85c3b33e489d5a0382dc259f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_serverUri: ws://81.240.94.97:3615
+  m_serverUri: wss://81.240.94.97:3615
   m_privateKey: <RSAKeyValue><Modulus>th3XuMm0CO6RFE8MqZ9un1KjPeXSoYs7QEFAC+WEoYSfuL6B21weefdNFFdZlZCmn0K1J3iX3mXED5RUd2P5dfZx1Jo1cDh/+udOpUpBY/JBnHfD9RV0gh5ydVUWVcSiMNI+YFGYjDSbP8off3lPvWZ//HVvkxoSbukO8Z5SCxk=</Modulus><Exponent>AQAB</Exponent><P>0WbhbxZpX5DKjyFEPLCjhr254RJSUSCtZyEO/w5MywcifTMkCbfn2bHSVEs7Nz79zWyhuClC+gK+x93+2wVZ4w==</P><Q>3qSVilYbk/rdX4Cb9JvKIZx39VBn90Q4XtIIj0iFV0hg2Y5yh8mgTz3ZO4b1sQQoN4iFf+MR+V4IBf/z/AlH0w==</Q><DP>OGHJJU4VhUPJJozAgM7W2PrQx8dVHr77sZ73GLnS93+uS6OvemZoKPd2OHghM5jkYaF0Uc/aVtLSZ6JgcryYHQ==</DP><DQ>By6D7Fxus01KSsRZQ4Cq+n6TmAQp9l3q+5QG1qheNLyO8zWXGC42z5eNJFBsKHOb4H6037UxZTvVQmxJMH4UJQ==</DQ><InverseQ>Z4Txjn7901hgobqxdNMbGlmF7KhSmixKzTn6jF4zsHQshHy/fhfVV+hs4gdLyLOZcRRieii/7ppz1OmV/bjatQ==</InverseQ><D>kb0kCy7vMk6oL1ZrTbrWrg1VsY0fmENxsSQGev67uv4FS7S4+rCnevda6bJVcImHrd+WVPX+ou1Rjx4m0jxhPpmwBbFL2GsgEt4KdNhaAFZ4KS7oPkQn//gaRRNt44udGlO+Mz3TrVshfceCYiNVrjdTAP7VUsFoXp0UAm+4FLk=</D></RSAKeyValue>
   m_publicKey: <RSAKeyValue><Modulus>th3XuMm0CO6RFE8MqZ9un1KjPeXSoYs7QEFAC+WEoYSfuL6B21weefdNFFdZlZCmn0K1J3iX3mXED5RUd2P5dfZx1Jo1cDh/+udOpUpBY/JBnHfD9RV0gh5ydVUWVcSiMNI+YFGYjDSbP8off3lPvWZ//HVvkxoSbukO8Z5SCxk=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>
   m_isConnectionValidated: 0
@@ -345,7 +345,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a95a4ea85c3b33e489d5a0382dc259f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_serverUri: ws://81.240.94.97:3615
+  m_serverUri: wss://81.240.94.97:3615
   m_privateKey: <RSAKeyValue><Modulus>pag9q/C3NF+ADjqIXMA++ZjQ9Y2CPOiBk4AYbgP7REIWqZ2GxaJLr2A/duxcjSISlXKixWrPl7INBIQF2MwswvFLhZQPUDjHO/Mva25xvi8N9/2cdTHjCF4qr8sx+TfAIJrKmlUULHeMfKm+mzmskDaVwUJGDcbkxDge55zYa1U=</Modulus><Exponent>AQAB</Exponent><P>2w9t0bN2aiDWI+VEBFoocavvSFsuOdFBbyJEKpsvTYakCe2Vss/Yi8U1ZfGF2ub1QF8A1rj8y6SiF4dq7vTkOw==</P><Q>wZd28LALhBkYS7xRarWkSb04nbCqzZUH9teMr9eGKr/zFhYd/IAY8RL1Rzv6ywZ0l3+5hLvhWsUviEoOLX3Frw==</Q><DP>oYZq76loszCrNaSj1qG0GL0ynyO8nh1SJmQZ52CuLHgPFNL/Au6HOeicSyMgFB0g0eo7cBjPLkmiy76qdrBUaQ==</DP><DQ>ftCsroB0GsWhn8MuBlwU0eUtWEcprGBLBk0vMOVbU1fIcphsbkKvlARaPp6w7Bw/dhrKOYQl3KM9PudcIDq6qw==</DQ><InverseQ>bhBjZObWn3Bz5qVaPM4t12DWhIwycUQEb4k20HEqWMj78Yns2g24VVD8x+RSyRoyCsRRtEcea2BxNZgmAMhtkw==</InverseQ><D>aTkAU2LHPAEdOex8CU4jsi8bK54DB+U3yRUob1kgFS9Vbc+dd5OrN26PYV6pOwxVeZAjS/qYeeai1id1/0tRckvtdik4VASO1JmnUjKxZ8jo+zS8qjVin3rOsA2Dr+jDrkvKY18P0dbFCv6+vH70f87RuxSJ8xKghc+v/2yXNdE=</D></RSAKeyValue>
   m_publicKey: <RSAKeyValue><Modulus>pag9q/C3NF+ADjqIXMA++ZjQ9Y2CPOiBk4AYbgP7REIWqZ2GxaJLr2A/duxcjSISlXKixWrPl7INBIQF2MwswvFLhZQPUDjHO/Mva25xvi8N9/2cdTHjCF4qr8sx+TfAIJrKmlUULHeMfKm+mzmskDaVwUJGDcbkxDge55zYa1U=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>
   m_isConnectionValidated: 0
@@ -749,7 +749,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a95a4ea85c3b33e489d5a0382dc259f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_serverUri: ws://81.240.94.97:3615
+  m_serverUri: wss://81.240.94.97:3615
   m_privateKey: <RSAKeyValue><Modulus>28hcojmUPKGJAp5+TeocYBZ6YYSiG85+BaRcrQ0c8Lnraa2czWZfZDmguC4VoeJ44JmO7RMGmOUWie+QAJwLRLwlN19J3+sy/LzgYQL9VtrEM7Eyx1KnGWN08ZablH/Vrg7+/K/97+Q9neeimpufTtOCoym7sTcHHvlsa98IytE=</Modulus><Exponent>AQAB</Exponent><P>9I2dGJ9OYjUELlcqBmY/ieI1uv//1F3BdoeeplgPU0e7nZY/0IZrPJuMlZZDEitMFgcA0Fq/zwLalSLRytsqmw==</P><Q>5hHuw8SxLjWllvvAyf+J6TPVLDpKb6TfhjFWXIh/jGyrtDlxHkjXxzJ8257O2RuLldFjvyHhnD0H9HzXDpkRAw==</Q><DP>camQJm2EhOiXNOKWSbskNPXKe0uYoB+jV2/ZMP8kwFRKwweeSVDwbo7tXGkmaz9scaB3pF9JXvG4njA8ycfrmQ==</DP><DQ>YNhdnFS4jI4ShSq2LZF+uQaTjkl/Od26JZ+xDcR7hF3eLUAcyLW69uPewQfpZGR+7nK0vSkC8iSSq6y9TizKhw==</DQ><InverseQ>mF7mxJyiKT+oMfxZzTrYr1NWrp2l1pxoaXwOmFEBSegP2Lka9l38M1y2ij4+/790uzKD7EIv8m9ARfxdxAu0dw==</InverseQ><D>M5/ysmBYA43mAul7vY16MM/W20UuVt3AGE8tPbDQ1XK2a1JOfKjJS1+F8v1QM4Bg6FDpk6JecFePXcMZzirZMlKK9Wh/2p04ZNSlM9haZOqvrAEVDzr7QxTOn1uMGJwudNFHZMHx1sW5L+RJgkv527NDeAT/PxScrgOM01piNOk=</D></RSAKeyValue>
   m_publicKey: <RSAKeyValue><Modulus>28hcojmUPKGJAp5+TeocYBZ6YYSiG85+BaRcrQ0c8Lnraa2czWZfZDmguC4VoeJ44JmO7RMGmOUWie+QAJwLRLwlN19J3+sy/LzgYQL9VtrEM7Eyx1KnGWN08ZablH/Vrg7+/K/97+Q9neeimpufTtOCoym7sTcHHvlsa98IytE=</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>
   m_isConnectionValidated: 0

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CloudTunnelingRSA.Beans;
+using CloudTunnelingRSA.Dico;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -28,8 +30,13 @@ namespace CloudTunnelingRSA
 
 
 
-    public class RsaFilterDicoIndexIntegerDate { 
-    
+    public class RsaFilterDicoIndexIntegerDate {
+
+        public void CheckIfPushable(in byte[] target, RsaPublicKeyRef key) { 
+        
+           // DicoIntegerIndexToStringPublicKey 
+            /// I am here.
+        }
     
     }
 
