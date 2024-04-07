@@ -7,17 +7,21 @@ namespace CloudTunnelingRSA.Dico
 
         public static DicoIntegerIndexToStringPublicKey Instance = new DicoIntegerIndexToStringPublicKey();
         public Dictionary<int, RsaPublicKeyRef> m_dicoIntegerIndexToRsa1024 = new Dictionary<int, RsaPublicKeyRef>();
+        public Dictionary<ulong, int> m_dicoKeyToIndex = new Dictionary<ulong, int>();
 
 
-       
+
         public void Add(int key, RsaPublicKeyRef value)
         {
             m_dicoIntegerIndexToRsa1024.Add(key, value);
+            m_dicoKeyToIndex.Add(value.GetObjectMemoryId(), key);
         }
         public RsaPublicKeyRef Get(int key)
         {
             return m_dicoIntegerIndexToRsa1024[key];
         }
+        
+        
         public void Remove(int key)
         {
             m_dicoIntegerIndexToRsa1024.Remove(key);
@@ -47,7 +51,18 @@ namespace CloudTunnelingRSA.Dico
             m_dicoIntegerIndexToRsa1024.Clear();
         }
 
-
-
+        public void Get(RsaPublicKeyRef publicKeyRef, out bool found, out int index)
+        {
+            found = false;
+            index = 0;
+            if(publicKeyRef== null)
+                return;
+            ulong id = publicKeyRef.GetObjectMemoryId();
+            if (m_dicoKeyToIndex.ContainsKey(id))
+            {
+                index = m_dicoKeyToIndex[id];
+                found = true;
+            }
+        }
     }
 }

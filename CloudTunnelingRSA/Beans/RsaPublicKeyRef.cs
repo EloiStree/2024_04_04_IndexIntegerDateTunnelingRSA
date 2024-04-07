@@ -21,7 +21,7 @@ namespace CloudTunnelingRSA.Beans
         {
             return m_publicKey;
         }
-        public ulong GetObjectIntId()
+        public ulong GetObjectMemoryId()
         {
             return m_index;
         }

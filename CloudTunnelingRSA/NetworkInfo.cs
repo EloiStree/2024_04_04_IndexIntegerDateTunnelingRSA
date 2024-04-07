@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.NetworkInformation;
+using static WebSocketServer;
 
 class NetworkInfo
 {
@@ -24,14 +25,14 @@ class NetworkInfo
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error retrieving router's public IP address: {ex.Message}");
+            ServerConsole.WriteLine($"Error retrieving router's public IP address: {ex.Message}");
             return "Error";
         }
     }
     public static void DisplayConnectedLocalIPs()
     {
-        Console.WriteLine("Public IP of the network:" + GetRouterPublicIpAddress());
-        Console.WriteLine("Connected Local IP Addresses:");
+        ServerConsole.WriteLine("Public IP of the network:" + GetRouterPublicIpAddress());
+        ServerConsole.WriteLine("Connected Local IP Addresses:");
 
         // Get all network interfaces on the computer
         NetworkInterface[] networkInterfaces = NetworkInterface.GetAllNetworkInterfaces();
@@ -42,17 +43,17 @@ class NetworkInfo
             if (nic.OperationalStatus == OperationalStatus.Up)
             {
                 // Display information for the connected network interface
-                Console.WriteLine($"Interface: {nic.Description}");
-                Console.WriteLine($"  Type: {nic.NetworkInterfaceType}");
+                ServerConsole.WriteLine($"Interface: {nic.Description}");
+                ServerConsole.WriteLine($"  Type: {nic.NetworkInterfaceType}");
 
                 // Display all connected IP addresses for the current network interface
                 IPInterfaceProperties ipProperties = nic.GetIPProperties();
                 foreach (UnicastIPAddressInformation ip in ipProperties.UnicastAddresses)
                 {
-                    Console.WriteLine($"  IP Address: {ip.Address}");
+                    ServerConsole.WriteLine($"  IP Address: {ip.Address}");
                 }
 
-                Console.WriteLine();
+                ServerConsole.WriteLine();
             }
         }
     }

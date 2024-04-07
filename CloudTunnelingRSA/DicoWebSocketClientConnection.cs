@@ -23,6 +23,21 @@ public class DicoWebSocketClientConnection
         return m_connectedClients.ContainsKey(key);
     }
 
+    //Get key and values
+
+    public List<ulong> GetKeys()
+    {
+        return m_connectedClients.Keys.ToList();
+    }
+
+    public List<WebSocketClientConnection> GetValues()
+    {
+        return m_connectedClients.Values.ToList();
+    }
+
+
+
+
     public int Count()
     {
         return m_connectedClients.Count;

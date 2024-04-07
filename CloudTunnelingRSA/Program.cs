@@ -17,6 +17,7 @@ using System.Collections.Generic;
 using CloudTunnelingRSA.Beans;
 using CloudTunnelingRSA;
 using System.ComponentModel;
+using CloudTunnelingRSA.IndexIntegerDate;
 
 
 public class QuickTest
@@ -55,7 +56,7 @@ partial class WebSocketServer
         httpListener.Prefixes.Add(httpListenerPrefix);
         httpListener.Start();
 
-        Console.WriteLine("WebSocket server is running...");
+        ServerConsole.WriteLine("WebSocket server is running...");
 
 
         while (true)
@@ -81,8 +82,8 @@ partial class WebSocketServer
 
         WebSocket webSocket = webSocketContext.WebSocket;
 
-        Console.WriteLine($"Reqiest URI {webSocketContext.RequestUri}");
-        //Console.WriteLine($"Origin {webSocketContext.Origin}");
+        ServerConsole.WriteLine($"Reqiest URI {webSocketContext.RequestUri}");
+        //ServerConsole.WriteLine($"Origin {webSocketContext.Origin}");
         WebSocketClientConnection temp = new WebSocketClientConnection();
         temp.m_httpConnection = webSocketContext;
         temp.m_webSocket = webSocket;
@@ -90,6 +91,8 @@ partial class WebSocketServer
 
         RsaPublicKeyRef publicKeyRef = null;
         RsaConnectionHandShake connectionHandShake = null;
+        int indexLockedOn = 0; 
+        bool isIndexLocked = false;
 
         try
         {
@@ -97,24 +100,47 @@ partial class WebSocketServer
             byte[] receivedMessageBytes = new byte[16];
 
 
-            Console.WriteLine($"A{" "}");
+            ServerConsole.WriteLine($"A{" "}");
 
             while (webSocket.State == WebSocketState.Open)
             {
-                Console.WriteLine($"B{" "}");
-                WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                if(connectionHandShake!=null)
+                connectionHandShake.UpdateLastActivity();
 
-                Console.WriteLine($"C{" "}");
+                ServerConsole.WriteLine($"B{" "}");
+                WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                Array.Copy(buffer, receivedMessageBytes, 16);
+                ServerConsole.WriteLine($"BIT AS RECEIVED{string.Join(" ", receivedMessageBytes)}");
                 if (result.MessageType== WebSocketMessageType.Binary) {
 
-                    ServerConsole.WriteLine($"> Received message bytes: {buffer.Length}");
+                    ServerConsole.WriteLine($">BBBBBBBBBBB Received message bytes: {buffer.Length}");
 
                     if (connectionHandShake != null && connectionHandShake.WasReceivedValide())
                     {
+                        int supposedIndex =BitConverter.ToInt32(buffer, 0);
+                        if (supposedIndex != indexLockedOn)
+                        {
+                            await KillConnection(webSocketContext, "RSA is link to unique index, you did not give the right one.");
+                            return;
+                        }
 
-                        Array.Copy(buffer, receivedMessageBytes, 16);
-                        ServerConsole.WriteLine($"> Try to push bytes: {buffer.Length}");
-                        await TryPushInRedirection(webSocket, receivedMessageBytes);
+                        int index = BitConverter.ToInt32(receivedMessageBytes, 0);
+                        int value = BitConverter.ToInt32(receivedMessageBytes, 4);
+                        ulong timeStampUtc = BitConverter.ToUInt64(receivedMessageBytes, 8);
+                        ServerConsole.WriteLine($"Index:{index} Value:{value} TimeStampUtc:{timeStampUtc}");
+                        DicoIndexIntegerDate.Instance.Set(
+                                index, value, timeStampUtc, out bool changed);
+                        if (changed)
+                        {
+                            ServerConsole.WriteLine($"> Try to push bytes: {receivedMessageBytes}");
+                            await TryPushInRedirection(webSocket, receivedMessageBytes);
+                        }
+                        else {
+                            await KillConnection(webSocketContext, "Not change was detected. To avoid spam, you were disconnected");
+                            return;
+                        }
+
+
                         continue;
                     }else
                     {
@@ -125,7 +151,7 @@ partial class WebSocketServer
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
                     string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                        ServerConsole.WriteLine($"> Received message : {receivedMessage}");
+                        ServerConsole.WriteLine($">TTTTTTT Received message : {receivedMessage}");
 
                     if (connectionHandShake != null && connectionHandShake.WasReceivedValide())
                     {
@@ -147,15 +173,26 @@ partial class WebSocketServer
                             else
                             {
                                 await MessageBack(webSocket, "RSA:Verified");
-                                await MessageBack(webSocket, "Congratulation. Welcome to the server. Make yourself as at your home. :)\n\n\n");
+                                DicoIntegerIndexToStringPublicKey.Instance.Get(publicKeyRef, out bool found, out int index);
 
-                                DicoWebSocketClientConnection.Instance.Add(publicKeyRef.GetObjectIntId(), temp);
+                                if (!found) { 
+                                    await KillConnection(webSocketContext, "Integer Index not found for the RSA Key given");
+                                    return;
+                                }
+
+                                await MessageBack(webSocket, "IndexLock:"+index);
+                                indexLockedOn = index;
+                                isIndexLocked = true;
+                                await MessageBack(webSocket, "Congratulation. Welcome to the server. Make yourself as at your home. :)\n\n\n");
+                                DicoWebSocketClientConnection.Instance.Add(publicKeyRef.GetObjectMemoryId(), temp);
                             }
 
                         }
 
                         if (publicKeyRef == null || connectionHandShake == null)
                         {
+
+
 
                             if (receivedMessage.Length > 5 && receivedMessage.IndexOf("Hello ") == 0)
                             {
@@ -167,10 +204,11 @@ partial class WebSocketServer
                                     return;
                                 }
                                 publicKeyRef = DicoRefRsaPublicKey.Instance.Get(givenPublicKey);
-                                Console.WriteLine($"Connection start with public key {publicKeyRef.GetObjectIntId()}:{publicKeyRef.GetPublicKey()}");
-                                connectionHandShake = DicoRsaConnectionHandShake.Instance.CreateOrSetThenGet(publicKeyRef);
+                                ServerConsole.WriteLine($"Connection start with public key {publicKeyRef.GetObjectMemoryId()}:{publicKeyRef.GetPublicKey()}");
+                                connectionHandShake = new RsaConnectionHandShake(publicKeyRef);
+                                DicoRsaConnectionHandShake.Instance.AddHandshake(publicKeyRef, connectionHandShake);
 
-                                byte[] reply = Encoding.UTF8.GetBytes("SIGNIN:" + connectionHandShake.m_messageSentToClient);
+                                byte[] reply = Encoding.UTF8.GetBytes("SIGNIN:" + connectionHandShake.m_uniqueMessageSentToClient);
                                 await webSocket.SendAsync(new ArraySegment<byte>(reply), WebSocketMessageType.Text, true, CancellationToken.None);
 
                             }
@@ -205,19 +243,24 @@ partial class WebSocketServer
         {
 
             if(publicKeyRef!=null )
-               DicoWebSocketClientConnection.Instance.Remove(publicKeyRef.GetObjectIntId());
+               DicoWebSocketClientConnection.Instance.Remove(publicKeyRef.GetObjectMemoryId());
             if (webSocketContext!=null && webSocketContext.WebSocket!=null)
                 await KillConnection(webSocketContext, "Exception: " + ex.StackTrace);
             ServerConsole.WriteLine($"Error: {ex.Message}");
         }
-        Console.WriteLine($"End Connection {webSocketContext.RequestUri}");
+        ServerConsole.WriteLine($"End Connection {webSocketContext.RequestUri}");
     }
 
+    
 
     private WebSocketClientConnection m_serverTargetClient;
 
     public WebSocketClientConnection GetHandShake()
     {
+
+        if(m_serverTargetClient!=null && m_serverTargetClient.m_webSocket.State!=WebSocketState.Open)
+            m_serverTargetClient = null;
+
         if (m_serverTargetClient == null)
         {
             ServerConsole.WriteLine("Server handshake is null");
@@ -232,10 +275,11 @@ partial class WebSocketServer
                 RsaPublicKeyRef rsaPublicKeyRef = DicoRefRsaPublicKey.Instance.Get(target);
                 ServerConsole.WriteLine("Server handshake has target is registered.");
                
-                RsaConnectionHandShake serverHandshake = DicoRsaConnectionHandShake.Instance.GetIfExistsOrNull(rsaPublicKeyRef);
-
-                if (serverHandshake == null)
+                List<RsaConnectionHandShake> serverHandshakeList = DicoRsaConnectionHandShake.Instance.GetIfExistsOrNull(rsaPublicKeyRef);
+                if(serverHandshakeList == null || serverHandshakeList.Count==0)
                     return null;
+
+                RsaConnectionHandShake serverHandshake = serverHandshakeList[0];
                 ServerConsole.WriteLine("Server handshake is instanciated");
                 if (!serverHandshake.WasReceivedValide())
                     return null;
@@ -243,7 +287,7 @@ partial class WebSocketServer
 
 
                 WebSocketClientConnection clientConnection =
-                DicoWebSocketClientConnection.Instance.Get(rsaPublicKeyRef.GetObjectIntId());
+                DicoWebSocketClientConnection.Instance.Get(rsaPublicKeyRef.GetObjectMemoryId());
                 if (clientConnection == null || clientConnection.m_webSocket == null)
                     return null;
                 ServerConsole.WriteLine("Server valide and connected client ?");
@@ -276,9 +320,16 @@ partial class WebSocketServer
     {
 
         WebSocketClientConnection c = GetHandShake();
-        if (c == null)
+        if (c == null )
         {
             ServerConsole.WriteLine("Not sent message because client target not there");
+            return Task.CompletedTask;
+
+        }
+        if (c.m_webSocket.State != WebSocketState.Open)
+        {
+            ServerConsole.WriteLine("Target rediection is lost");
+
             return Task.CompletedTask;
 
         }
@@ -314,9 +365,15 @@ private static async Task KillConnection(HttpListenerWebSocketContext webSocketC
             return;
         }
 
-        await MessageBack(webSocketContext.WebSocket, message);
-        ServerConsole.WriteLine($"Kill connection: {message}");
-        await webSocketContext.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+        try { 
+            await MessageBack(webSocketContext.WebSocket, message);
+            ServerConsole.WriteLine($"Kill connection: {message}");
+            await webSocketContext.WebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
+        }catch(Exception e)
+        {
+            ServerConsole.WriteLine($"Kill connection Exception: {e.Message}");
+
+        }
     }
 
 
@@ -343,6 +400,18 @@ class Program
     public static string m_configFileRelativePath = "ConfigBroadcaster.json";
     static async Task Main(string[] args)
     {
+
+        //Launch task to do something every 5 seconds
+        Task.Run(async () =>
+        {
+            while (true)
+            {
+                await Task.Delay(5000);
+                FlushLostConnection();
+            }
+        });
+
+
         if (!File.Exists("IdToPublicKey.txt"))
         {
             string dirRoot = Directory.GetCurrentDirectory();
@@ -353,18 +422,18 @@ class Program
             foreach (string s in strings)
             {
                 string pathFolder = Path.GetDirectoryName(s);
-                //Console.WriteLine(s);
+                //ServerConsole.WriteLine(s);
                 int lastIndex = pathFolder.LastIndexOf('\\');
                 if (lastIndex <= -1)
                     continue;
                 string index = pathFolder.Substring(lastIndex + 1);
-                Console.WriteLine(index);
+                ServerConsole.WriteLine(index);
 
                 if (int.TryParse(index, out int i))
                 {
                     string publicKey = File.ReadAllText(s);
-                    //Console.WriteLine(pathFolder);
-                    Console.WriteLine(i+":"+publicKey);
+                    //ServerConsole.WriteLine(pathFolder);
+                    ServerConsole.WriteLine(i+":"+publicKey);
 
                     strinbBuilder.Append("\n➤");
                     strinbBuilder.Append(i);
@@ -385,7 +454,7 @@ class Program
                string [] dualSplit = s.Replace("\n➤","").Split('☗');
                if(dualSplit.Length==2)
                {
-                   Console.WriteLine(dualSplit[0] + ":"+ dualSplit[1]);
+                   ServerConsole.WriteLine(dualSplit[0] + ":"+ dualSplit[1]);
                    if (int.TryParse(dualSplit[0], out int i)) {
 
                        PushInRegsiterIndexRsa(i, dualSplit[1]);
@@ -394,7 +463,7 @@ class Program
            });
         }
 
-        Console.WriteLine("Index register: "+string.Join(",",DicoIntegerIndexToStringPublicKey.Instance.GetKeys() ));
+        ServerConsole.WriteLine("Index register: "+string.Join(",",DicoIntegerIndexToStringPublicKey.Instance.GetKeys() ));
 
 
         if (!Directory.Exists("PublicKeyTarget"))
@@ -417,7 +486,7 @@ class Program
             File.WriteAllText(m_configFileRelativePath, JsonConvert.SerializeObject(AppConfig.Configuration));
 
         string configUsed = File.ReadAllText(m_configFileRelativePath);
-        Console.WriteLine(configUsed);
+        ServerConsole.WriteLine(configUsed);
         AppConfig.Configuration = JsonConvert.DeserializeObject<AppConfig>(configUsed);
 
 
@@ -426,16 +495,41 @@ class Program
 
 
         HideWindowTool.MinimizeConsoleWindow();
-        string httpListenerPrefix = $"https://*:{AppConfig.Configuration.m_portOfServer}/";
+        string httpListenerPrefix = $"http://*:{AppConfig.Configuration.m_portOfServer}/";
         int udpListenerPort = AppConfig.Configuration.m_portToListen;
 
         WebSocketServer server = new WebSocketServer();
         await server.Start(httpListenerPrefix, udpListenerPort);
 
-        Console.WriteLine("Press any key to stop the server...");
+        ServerConsole.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
 
         server.Stop();
+    }
+
+    private static void FlushLostConnection()
+    {
+        List<ulong> toRemove = new List<ulong>();
+        foreach (var item in DicoWebSocketClientConnection.Instance.GetKeys())
+        {
+            WebSocketClientConnection c = DicoWebSocketClientConnection.Instance.Get(item);
+            if (c == null || c.m_webSocket == null || c.m_webSocket.State != WebSocketState.Open)
+            {
+                toRemove.Add(item);
+            }
+        }
+
+        foreach (ulong i in toRemove)
+        {
+           WebSocketClientConnection connection= DicoWebSocketClientConnection.Instance.Get(i);
+
+
+           DicoRsaConnectionHandShake.Instance.Remove(connection.m_handshake);
+           DicoWebSocketClientConnection.Instance.Remove(i);
+
+        }
+
+        
     }
 
     public  static void PushInRegsiterIndexRsa(int i, string publicKey)

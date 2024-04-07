@@ -15,19 +15,19 @@ public class ReceivedFromConnectToRelayServerTunnelingRsaMono : MonoBehaviour
     public UnityEvent<byte[]> m_onReceivedMessageBytes = new UnityEvent<byte[]>();
     public void Start()
     {
-        if(m_connection == null)
+        if(m_connection != null)
         {
-            m_connection.m_onThreadMessageReceivedBinary = OnMessageReceivedBinary;
-            m_connection.m_onThreadMessageReceivedText = OnMessageReceivedBinary;
+            m_connection.m_onThreadMessageReceivedBinary = OnMessageReceived;
+            m_connection.m_onThreadMessageReceivedText = OnMessageReceived;
         }
     }
 
-    private void OnMessageReceivedBinary(string message)
+    private void OnMessageReceived(string message)
     {
         m_receivedFromServerUTF8.Enqueue(message);
     }
 
-    private void OnMessageReceivedBinary(byte[] message)
+    private void OnMessageReceived(byte[] message)
     {
         m_receivedFromServerBytes.Enqueue(message);
     }
