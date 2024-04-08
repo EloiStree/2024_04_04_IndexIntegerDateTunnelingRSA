@@ -12,6 +12,9 @@ public class DicoWebSocketClientConnection
     }
     public WebSocketClientConnection Get(ulong key)
     {
+        if (!m_connectedClients.ContainsKey(key))
+            return null;
+
         return m_connectedClients[key];
     }
     public void Remove(ulong key)
@@ -46,5 +49,10 @@ public class DicoWebSocketClientConnection
     public void Clear()
     {
         m_connectedClients.Clear();
+    }
+
+    public int GetValuesCount()
+    {
+        return m_connectedClients.Count;
     }
 }

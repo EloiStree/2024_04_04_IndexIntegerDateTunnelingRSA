@@ -74,11 +74,22 @@ public class DicoRsaConnectionHandShake
             List<RsaConnectionHandShake> list = m_dicoIntegerIndexToRsaConnectionHandShake[i];
             for (int j = list.Count - 1; j >= 0; j--)
             {
-                if (list[j] == handshake)
+                if (list[j] == null)
+                {
+                    list.RemoveAt(j);
+                }else if (list[j] == handshake)
                 {
                     list.RemoveAt(j);
                 }
             }
+            if(list.Count==0)
+                m_dicoIntegerIndexToRsaConnectionHandShake.Remove(i);
         }
+    }
+
+    internal int GetValuesCount()
+    {
+        //Should be Adding all handshake list  but need computation.
+        return m_dicoIntegerIndexToRsaConnectionHandShake.Count();
     }
 }

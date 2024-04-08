@@ -8,7 +8,6 @@ public class TDD_ConnectToRelayServerTunnelingRsaMono : MonoBehaviour
 
     public string m_time = "";
 
-    public int m_intIndex = 0;
     public int [] m_intValue = new int[] { 0,42,69,2501,314,31418};
     public ulong m_utcDateMilliseconds = 0;
     public float m_timeWaiting=0.5f;
@@ -31,16 +30,15 @@ public class TDD_ConnectToRelayServerTunnelingRsaMono : MonoBehaviour
                 //m_connection.PushMessageText("Time Client: " + System.DateTime.UtcNow.ToString());
                 yield return new WaitForSeconds(m_timeWaiting);
                 //generate 32 bytes of random data
-                byte[] randomData = new byte[16];
+                byte[] randomData = new byte[12];
                 
                 m_utcDateMilliseconds = (ulong)DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
                 m_previousValue = m_currentValue;
                 m_currentValue = GetRandomInteger();
                 if (m_currentValue == m_previousValue)
                     m_currentValue += 1;
-                BitConverter.GetBytes(m_intIndex).CopyTo(randomData, 0);
-                BitConverter.GetBytes(m_currentValue).CopyTo(randomData, 4);
-                BitConverter.GetBytes(m_utcDateMilliseconds).CopyTo(randomData, 8);
+                BitConverter.GetBytes(m_currentValue).CopyTo(randomData, 0);
+                BitConverter.GetBytes(m_utcDateMilliseconds).CopyTo(randomData, 4);
 
                 m_connection.PushMessageBytes(randomData);
                 yield return new WaitForSeconds(m_timeWaiting);

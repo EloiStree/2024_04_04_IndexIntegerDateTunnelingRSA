@@ -64,5 +64,24 @@ namespace CloudTunnelingRSA.Dico
                 found = true;
             }
         }
+
+        public int GetValuesCount()
+        {
+            return m_dicoIntegerIndexToRsa1024.Count;
+        }
+
+        public int ClaimUnusedNegative()
+        {
+            int index = -1;
+            for (int i = -1; i > int.MinValue; i--)
+            {
+                if (!m_dicoIntegerIndexToRsa1024.ContainsKey(i))
+                {
+                    index = i;
+                    break;
+                }
+            }
+            return index;
+        }
     }
 }

@@ -6,7 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/2024_04_04_GenereteEthereumAndRsaKeyInUnity/Demo.unity
+    path: Assets/2024_04_04_GenereteRsaKeyInUnity/Demo Server.unity
     guid: 3f0325fa774f269499f42ab604887748
-  m_configObjects: {}
+  m_configObjects:
+    com.unity.input.settings: {fileID: 11400000, guid: f7d7edaa688599d4b8be670c83815f20,
+      type: 2}
   m_UseUCBPForAssetBundles: 0

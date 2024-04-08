@@ -13,4 +13,8 @@ public class WebSocketClientConnection
         return m_handshake.IsRsaPublicKeyGiven();
     }
 
+    public bool IsConnected()
+    {
+        return m_webSocket!=null && m_webSocket.State == WebSocketState.Open;
+    }
 }

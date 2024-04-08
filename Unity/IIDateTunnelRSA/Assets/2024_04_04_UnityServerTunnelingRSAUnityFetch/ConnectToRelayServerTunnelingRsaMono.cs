@@ -42,6 +42,10 @@ public class ConnectToRelayServerTunnelingRsaMono : MonoBehaviour
     public string m_lastPushMessageTextDate = "";
     public string m_lastPushMessageBinaryDate = "";
 
+
+    public bool m_autoStart = true;
+    public bool m_autoReconnect = true;
+
     private void ResetAllValue()
     {
        
@@ -60,15 +64,52 @@ public class ConnectToRelayServerTunnelingRsaMono : MonoBehaviour
 
 }
 
-
-void Start()
+    public void SetPublicKeyXml(string xmlKey)
     {
-
-        InvokeRepeating("CheckConnectionState", 0, 5);
-      
-      
-       
+        m_publicKey = xmlKey;
     }
+    public void SetPrivateKeyXml(string xmlKey)
+    {
+        m_privateKey = xmlKey;
+    }
+
+    private void OnDestroy()
+    {
+       
+        if (m_connectionEstablished != null)
+        {
+            try { 
+            
+            m_connectionEstablished.Abort();
+            m_connectionEstablished.Dispose();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError(e);
+            }
+        }
+    }
+    void Start()
+    {
+        StartClient();
+
+    }
+
+     void StartClient()
+    {
+        if (m_autoStart)
+        {
+            TryToLaunchOrRelaunchClient();
+        }
+    }
+
+    public void TryToLaunchOrRelaunchClient() {
+
+        CheckConnectionState();
+        if (m_autoReconnect)
+            InvokeRepeating("CheckConnectionState", 0, 5);
+    }
+
 
     Task m_running;
     public void CheckConnectionState()
@@ -205,6 +246,21 @@ void Start()
     public void PushMessageBytes(byte[] bytesToSend)
     {
         m_toSendToTheServerBytes.Enqueue(bytesToSend);
+    }
+    public int m_previousInteger    = 0;
+    public void PushMessageInteger(int value)
+    {
+       PushMessageInteger(value, DateTime.UtcNow);
+    }
+    public void PushMessageInteger(int value, DateTime time)
+    {
+        if (m_previousInteger == value)
+            return;
+        byte[] localBytes = new byte[12];
+        m_previousInteger = value;
+        BitConverter.GetBytes(value).CopyTo(localBytes, 0);
+        BitConverter.GetBytes((ulong) (time.Ticks / TimeSpan.TicksPerMillisecond)).CopyTo(localBytes, 4);
+        m_toSendToTheServerBytes.Enqueue(localBytes);
     }
 
     private async Task ReceiveMessages(ClientWebSocket webSocket)
