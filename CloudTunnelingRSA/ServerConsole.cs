@@ -6,14 +6,14 @@
         {
             if (AppConfig.Configuration.m_useConsolePrint)
             {
-               // Console.WriteLine(message);
+                Console.WriteLine(message);
             }
         }
         public static void WriteLine()
         {
             if (AppConfig.Configuration.m_useConsolePrint)
             {
-             //   Console.WriteLine();
+                Console.WriteLine();
             }
         }
     }

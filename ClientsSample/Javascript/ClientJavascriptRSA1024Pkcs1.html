@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Example</title>
+</head>
+<body>
+    <h1>WebSocket Start</h1>
+    <div id="publicKey">Public</div>
+    <div id="privateKey">Private</div>
+    <script>
+        const WebSocketURL = "ws://81.240.94.97:3615";
+        let ws;
+        let isConnectedToServer = false;
+       
+    public_PEM ="";
+    private_PEM ="";
+
+    // Generate a private key for RSA 1024
+    window.crypto.subtle.generateKey({
+        name: "RSA-OAEP",
+        modulusLength: 1024,
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        hash: { name: "SHA-256" },
+    }, true, ["encrypt", "decrypt"])
+        .then(function (keyPair) {
+            return Promise.all([
+                window.crypto.subtle.exportKey("spki", keyPair.publicKey),
+                window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
+            ]);
+        })
+        .then(function (keys) {
+            const publicKey = arrayBufferToBase64(keys[0]);
+            const privateKey = arrayBufferToBase64(keys[1]);
+
+            private_PEM = privateKey;
+            public_PEM = publicKey;
+            // Display public key and private key PEM in a div
+            const publicKeyDiv = document.getElementById('publicKey');
+            publicKeyDiv.textContent = 'Public Key: ' + publicKey;
+
+            const privateKeyDiv = document.getElementById('privateKey');
+            privateKeyDiv.textContent = 'Private Key: ' + privateKey;
+
+            // Assuming you have the logic to use the public key
+            const publicPem = publicKey.toString();
+
+            // Use the publicPem variable in the onOpen function
+
+            function arrayBufferToBase64(buffer) {
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return window.btoa(binary);
+            }
+
+
+            // Rest of your code here
+        })
+        .catch(function (error) {
+            console.error("Error generating RSA key pair:", error);
+        });
+   
+        
+
+
+        // Use the publicPem variable in the onOpen function
+
+        function signMessage(message) {
+
+            //HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1
+            // Sign a message
+            const signature = ""; // Assuming you have the logic to sign the message
+            return signature;
+        }
+
+        function onMessage(event) {
+
+            const message = event.data;
+            
+            console.log("Received message:", message);
+
+            if (message.startsWith("SIGNIN:")) {
+            // Extract the signed message from the response
+            const signedMessage = message.substring(7).trim();
+            const signature = signMessage(signedMessage);
+            const toSend = "SIGNED:" + signature;
+            // Send the signature
+            ws.send(toSend);
+            }
+
+            if (message.startsWith("RSA:Verified")) {
+            console.log("RSA Verified :)");
+            isConnectedToServer = true;
+            }
+        }
+
+        function onError(event) {
+            console.error("Error:", event);
+            isConnectedToServer = false;
+        }
+
+        function onClose() {
+            console.log("WebSocket connection closed");
+            ws = null;
+        }
+
+        function onOpen() {
+            console.log("WebSocket connection opened");
+            if (ws) {
+            const message = "Hello " + public_PEM; // Assuming you have the public key
+            console.log("Sent:", message);
+            ws.send(message);
+            }
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket(WebSocketURL);
+            ws.onmessage = onMessage;
+            ws.onerror = onError;
+            ws.onclose = onClose;
+            ws.onopen = onOpen;
+        }
+
+        connectWebSocket();
+    </script>
+    
+    <h1>WebSocket End</h1>
+</body>
+</html>

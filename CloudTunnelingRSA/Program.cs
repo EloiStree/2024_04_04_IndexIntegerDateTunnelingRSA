@@ -3,11 +3,9 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Xml;
 using System;
 using System.Security.Cryptography.Xml;
 using static WebSocketServer;
@@ -130,47 +128,39 @@ partial class WebSocketServer
                 ByteReceivedCount.Instance.AddByteCount(result.Count);
 
 
-                Array.Copy(buffer,0, receivedMessageBytes,4, 12);
                 //ServerConsole.WriteLine($"BIT AS RECEIVED{string.Join(" ", receivedMessageBytes)}");
                 if (result.MessageType== WebSocketMessageType.Binary) {
 
-                    //ServerConsole.WriteLine($">BBBBBBBBBBB Received message bytes: {buffer.Length}");
-
-                    if (connectionHandShake != null && connectionHandShake.WasReceivedValide())
-                    {
-                        BitConverter.GetBytes(indexLockedOn).CopyTo(receivedMessageBytes, 0);
-                        int value = BitConverter.ToInt32(receivedMessageBytes, 4);
-                        ulong timeStampUtc = BitConverter.ToUInt64(receivedMessageBytes, 8);
-                        ServerConsole.WriteLine($"Index:{indexLockedOn} Value:{value} TimeStampUtc:{timeStampUtc}");
-                        DicoIndexIntegerDate.Instance.Set(
-                                indexLockedOn, value, timeStampUtc, out bool changed);
-                        if (changed)
-                        {
-                            // ServerConsole.WriteLine($"> Try to push bytes: {receivedMessageBytes}");
-                            await TryPushInRedirection(webSocket, receivedMessageBytes);
-                        }
-                        else {
-                            await KillConnection(webSocketContext, "Not change was detected. To avoid spam, you were disconnected");
-                            return;
-                        }
-
-
-                        continue;
-                    }else
-                    {
-                        await KillConnection(webSocketContext, "Validate RSA connection before sending bytes data.");
-                        return;
-                    }
+                   await BufferToIndexIntegerDate(webSocket, connectionHandShake, webSocketContext, buffer, receivedMessageBytes, indexLockedOn);
+                    continue;
                 }
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
                     string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
-                    //ServerConsole.WriteLine($">TTTTTTT Received message : {receivedMessage}");
+                    ServerConsole.WriteLine($">T Received message : {receivedMessage}");
+
 
                     if (connectionHandShake != null && connectionHandShake.WasReceivedValide())
                     {
-                        //ServerConsole.WriteLine($"> Try to push text: {receivedMessage}");
-                        await TryPushInRedirection(webSocket, receivedMessage);
+                        if (receivedMessage.StartsWith("b|"))
+                        {
+                            receivedMessage = receivedMessage.Substring(2);
+                            byte[] bytes = Convert.FromBase64String(receivedMessage);
+                            await BufferToIndexIntegerDate(webSocket, connectionHandShake, webSocketContext, bytes, receivedMessageBytes, indexLockedOn);
+                            continue;
+                        }
+                        if (receivedMessage.StartsWith("i|"))
+                        {
+                            receivedMessage = receivedMessage.Substring(2);
+                            if(int.TryParse(receivedMessage, out int value))
+                            {
+                                byte[] bytes = new byte[12];
+                                BitConverter.GetBytes(value).CopyTo(bytes, 0);
+                                BitConverter.GetBytes(GetTimeUTCAsLong()).CopyTo(bytes, 4);
+                                await BufferToIndexIntegerDate(webSocket, connectionHandShake, webSocketContext, bytes, receivedMessageBytes, indexLockedOn);
+                            }
+                            continue;
+                        }
                         continue;
                     }
                     else {
@@ -216,9 +206,13 @@ partial class WebSocketServer
 
                             if (receivedMessage.Length > 5 && receivedMessage.IndexOf("Hello ") == 0)
                             {
+
+
                                 string givenPublicKey = receivedMessage.Substring("Hello ".Length).Trim(' ');
 
 
+                                ConvertGivenKeyToRSAXML.TryParse(givenPublicKey, out bool foundAndConvert, out givenPublicKey);
+                                Console.WriteLine($"Given public key {foundAndConvert}: {givenPublicKey}");
 
 
                                 if (!DicoRefRsaPublicKey.Instance.ContainsKey(givenPublicKey))
@@ -283,16 +277,77 @@ partial class WebSocketServer
 
             if(publicKeyRef!=null )
                DicoWebSocketClientConnection.Instance.Remove(publicKeyRef.GetObjectMemoryId());
+
+            await MessageBack(webSocket, "Exception: " + ex.StackTrace);
             if (webSocketContext!=null && webSocketContext.WebSocket!=null)
                 await KillConnection(webSocketContext, "Exception: " + ex.StackTrace);
-            ServerConsole.WriteLine($"Error: {ex.Message}");
+            ServerConsole.WriteLine($"Error: {ex.StackTrace}");
         }
         ServerConsole.WriteLine($"End Connection {webSocketContext.RequestUri}");
     }
 
-    
+    private ulong GetTimeUTCAsLong()
+    {
+        return  (ulong)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond);
+    }
 
-   // private WebSocketClientConnection m_serverTargetClient;
+    private async Task BufferToIndexIntegerDate(
+       System.Net.WebSockets.WebSocket websocket,
+       RsaConnectionHandShake connectionHandShake,
+       HttpListenerWebSocketContext webSocketContext,
+       byte[] buffer,
+       byte[] receivedMessageBytes,
+       int indexLockedOn
+      )
+    {
+
+
+        Array.Copy(buffer, 0, receivedMessageBytes, 4, 12);
+        await BufferToIndexIntegerDate(websocket, connectionHandShake, webSocketContext, receivedMessageBytes, indexLockedOn);
+    }
+
+        private async Task BufferToIndexIntegerDate(
+         System.Net.WebSockets.WebSocket websocket,
+         RsaConnectionHandShake connectionHandShake,
+         HttpListenerWebSocketContext webSocketContext,
+         byte[]  receivedMessageBytes,
+         int indexLockedOn
+        )
+    {
+        //ServerConsole.WriteLine($">BBBBBBBBBBB Received message bytes: {buffer.Length}");
+        //ServerConsole.WriteLine($">Bytes: {string.Join(" ", buffer)}");
+
+        if (connectionHandShake != null && connectionHandShake.WasReceivedValide())
+        {
+            BitConverter.GetBytes(indexLockedOn).CopyTo(receivedMessageBytes, 0);
+            int value = BitConverter.ToInt32(receivedMessageBytes, 4);
+            ulong timeStampUtc = BitConverter.ToUInt64(receivedMessageBytes, 8);
+            ServerConsole.WriteLine($"Index:{indexLockedOn} Value:{value} TimeStampUtc:{timeStampUtc}");
+            DicoIndexIntegerDate.Instance.Set(
+                    indexLockedOn, value, timeStampUtc, out bool changed);
+            if (changed)
+            {
+                // ServerConsole.WriteLine($"> Try to push bytes: {receivedMessageBytes}");
+                await TryPushInRedirection(websocket, receivedMessageBytes);
+            }
+            else
+            {
+                await KillConnection(webSocketContext, "Not change was detected. To avoid spam, you were disconnected");
+                return;
+            }
+
+            
+        }
+        else
+        {
+            await KillConnection(webSocketContext, "Validate RSA connection before sending bytes data.");
+            return;
+        }
+    }
+
+
+
+    // private WebSocketClientConnection m_serverTargetClient;
 
     //public List<WebSocketClientConnection> GetHandShake()
     //{
@@ -313,7 +368,7 @@ partial class WebSocketServer
     //        {
     //            RsaPublicKeyRef rsaPublicKeyRef = DicoRefRsaPublicKey.Instance.Get(target);
     //            ServerConsole.WriteLine("Server handshake has target is registered.");
-               
+
     //            List<RsaConnectionHandShake> serverHandshakeList = DicoRsaConnectionHandShake.Instance.GetIfExistsOrNull(rsaPublicKeyRef);
     //            if(serverHandshakeList == null || serverHandshakeList.Count==0)
     //                return null;
@@ -343,7 +398,7 @@ partial class WebSocketServer
     //    return m_serverTargetClient;
     //}
 
-    private Task TryPushInRedirection(WebSocket webSocket, string receivedMessage)
+    private Task TryPushInRedirection(System.Net.WebSockets. WebSocket webSocket, string receivedMessage)
     {
         List<WebSocketClientConnection> cs= WebSocketClientRedirectionList.Instance.GetList();
 
