@@ -9,6 +9,7 @@
     <h1>WebSocket Start</h1>
     <div id="publicKey">Public</div>
     <div id="privateKey">Private</div>
+    <div id="appendDiv"></div>
     <script>
         const WebSocketURL = "ws://81.240.94.97:3615";
         let ws;
@@ -17,16 +18,20 @@
     public_PEM ="";
     private_PEM ="";
 
-    // Generate a private key for RSA 1024
+
+    
+
+
+
     window.crypto.subtle.generateKey({
         name: "RSA-OAEP",
         modulusLength: 1024,
-        publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+        publicExponent: new Uint8Array([0x01, 0x00, 0x01, 0x00, 0x01]),
         hash: { name: "SHA-256" },
     }, true, ["encrypt", "decrypt"])
         .then(function (keyPair) {
             return Promise.all([
-                window.crypto.subtle.exportKey("spki", keyPair.publicKey),
+                window.crypto.subtle.exportKey("pkcs1", keyPair.publicKey),
                 window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
             ]);
         })
@@ -73,9 +78,30 @@
         function signMessage(message) {
 
             //HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1
+
+            appendDiv = document.getElementById('appendDiv');
+            appendDiv.textContent = 'Message to sign: ' + message;
+
+
             // Sign a message
-            const signature = ""; // Assuming you have the logic to sign the message
-            return signature;
+            const encoder = new TextEncoder();
+            const data = encoder.encode(message);
+            const signature="";
+            window.crypto.subtle.sign(
+                {
+                    name: "RSA-OAEP"
+                },
+                privateKey,
+                data
+            ).then(function(result) {
+                signature = result;
+            }).catch(function(error) {
+                appendDiv.textContent = "Error signing message:"+ error;
+            });
+            const signatureBase64 = arrayBufferToBase64(signature);
+
+            appendDiv.textContent = 'Message to sign: ' + signatureBase64;
+            return signatureBase64;
         }
 
         function onMessage(event) {
