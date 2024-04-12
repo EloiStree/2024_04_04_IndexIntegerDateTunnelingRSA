@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using CloudTunnelingLocalGateRSA;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Security.Cryptography;
 using System.Text;
@@ -57,14 +58,11 @@ public class WebSocketClientToServerRSA
                 {
                     m_messageToSignedReceived = "";
                     m_connectionEstablishedAndVerified = false;
+                    Console.WriteLine("\n\n\n\n");
                     Console.WriteLine($"Connecting to server: {m_serverUri}");
                     await webSocket.ConnectAsync(new Uri(m_serverUri), CancellationToken.None);
 
                     Task.Run(() => ReceiveMessages(webSocket));
-
-
-
-
 
                     while (webSocket.State == WebSocketState.Open)
                     {
@@ -92,7 +90,7 @@ public class WebSocketClientToServerRSA
                             byte[] data = Encoding.UTF8.GetBytes(messageToSigne);
                             byte[] signature = SignData(data, privateKey);
                             var signatureBase64 = Convert.ToBase64String(signature);
-                            string sent = "RSA:" + signatureBase64;
+                            string sent = "SIGNED:" + signatureBase64;
                             byte[] signatureBytes = Encoding.UTF8.GetBytes(sent);
                             Console.WriteLine($"Sent message to server: {sent}");
                             Console.WriteLine($"Sent message to server: {messageToSigne}");
@@ -139,7 +137,10 @@ public class WebSocketClientToServerRSA
     }
 
     public static string m_messageToSignedReceived = "";
+    private bool m_isIndexOnServerReceived;
     public static bool m_connectionEstablishedAndVerified = false;
+    private int m_indexOnServerForRSAKey;
+
     private async Task ReceiveMessages(ClientWebSocket webSocket)
     {
         byte[] buffer = new byte[4096];
@@ -156,17 +157,42 @@ public class WebSocketClientToServerRSA
                     Console.WriteLine($"Received message from server: {receivedMessage}");
                     if (!m_connectionEstablishedAndVerified)
                     {
-                        if (receivedMessage.Contains("SIGNEHERE:"))
+                        if (receivedMessage.Contains("SIGNIN:"))
                         {
-                            m_messageToSignedReceived = receivedMessage.Replace("SIGNEHERE:", "");
+                            m_messageToSignedReceived = receivedMessage.Replace("SIGNIN:", "");
                         }
+
                         if (receivedMessage.Contains("RSA:Verified"))
                         {
                             m_connectionEstablishedAndVerified = true;
                         }
                     }
+                    else {
+
+                        if (receivedMessage.Contains("IndexLock:"))
+                        {
+                            SetIndexFromString(receivedMessage.Replace("IndexLock:", ""));
+                        }
+                        else if (receivedMessage.Contains("INDEX:"))
+                        {
+                            SetIndexFromString(receivedMessage.Replace("INDEX:", ""));
+                        }
+                        else {
+
+                            BraodcastText(receivedMessage);
+                        }
+
+                    }
 
     
+                }
+                if (result.MessageType == WebSocketMessageType.Binary)
+                {
+                    if (m_connectionEstablishedAndVerified) { 
+                        byte[] receivedMessageBytes = new byte[result.Count];
+                        Array.Copy(buffer, 0, receivedMessageBytes, 0, result.Count);
+                        BraodcastBytes(receivedMessageBytes);
+                    }
                 }
             }
         }
@@ -180,4 +206,24 @@ public class WebSocketClientToServerRSA
         }
     }
 
+    private void BraodcastText(string receivedMessage)
+    {
+        ServerConsole.WriteLine($"Braodcast callback:{receivedMessage} {DateTime.Now}");
+        ListenAsLocalWebsocket.Instance.BroadcastToConnected(receivedMessage);
+        BroadcastCallbackAsUDP.Instance.Enqueue(receivedMessage);
+    }
+    private void BraodcastBytes(byte [] receivedMessage)
+    {
+
+        ServerConsole.WriteLine($"Braodcast callback bytes:{receivedMessage.Length} ({string.Join(" ", receivedMessage)}) {DateTime.Now}");
+        ListenAsLocalWebsocket.Instance.BroadcastToConnected(receivedMessage);
+        BroadcastCallbackAsUDP.Instance.Enqueue(receivedMessage);
+    }
+
+    private void SetIndexFromString(string text)
+    {
+        m_isIndexOnServerReceived =
+        int.TryParse(text, out m_indexOnServerForRSAKey);
+        ServerConsole.WriteLine($"-- Index on server: {m_indexOnServerForRSAKey}");
+    }
 }

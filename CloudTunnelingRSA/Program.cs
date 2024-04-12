@@ -59,6 +59,7 @@ partial class WebSocketServer
         public bool m_displayIpAddresses = true;
         public bool m_useConsolePrint = false;
         public bool m_valueTypeIsByte = true;
+        public bool m_allowToListenAtChanged=true;
 
         public static AppConfig Configuration = new AppConfig();
         internal bool m_useConsoleStatePrint=true;
@@ -68,7 +69,7 @@ partial class WebSocketServer
     private HttpListener httpListener;
 
 
-    public async Task Start(string httpListenerPrefix, int udpListenerPort)
+    public async Task Start(string httpListenerPrefix)
     {
         httpListener = new HttpListener();
         httpListener.Prefixes.Add(httpListenerPrefix);
@@ -191,6 +192,13 @@ partial class WebSocketServer
                                 isIndexLocked = true;
                                 await MessageBack(webSocket, "Congratulation. Welcome to the server. Make yourself as at your home. :)\n\n\n");
                                 DicoWebSocketClientConnection.Instance.Add(publicKeyRef.GetObjectMemoryId(), temp);
+                                DicoOwnerListener.Instance.AddListener(publicKeyRef.GetObjectMemoryId(), new OwnerListener() { m_connectionForCallback = webSocketContext });
+
+                                if (AppConfig.Configuration.m_allowToListenAtChanged)
+                                    await MessageBack(webSocket, "(Server return value change. This feature is temporary. The time to create a websocket dedicated to that.)");
+                                
+
+
                                 if (WebSocketClientRedirectionList.Instance.ContainsIndex(indexLockedOn))
                                     WebSocketClientRedirectionList.Instance.AddClientToRedirectTo(temp);
                                 else if (WebSocketClientRedirectionList.Instance.ContainsKey(publicKeyRef))
@@ -329,6 +337,11 @@ partial class WebSocketServer
             {
                 // ServerConsole.WriteLine($"> Try to push bytes: {receivedMessageBytes}");
                 await TryPushInRedirection(websocket, receivedMessageBytes);
+
+                byte[] package= new byte[12];
+                Array.Copy(receivedMessageBytes, 4, package, 0, 12);
+                PushBackToListenerRSA.Instance.PushBackBytes(
+                    connectionHandShake.GetPublicKey(),package);
             }
             else
             {
@@ -590,7 +603,7 @@ class Program
         int udpListenerPort = AppConfig.Configuration.m_portToListen;
 
         WebSocketServer server = new WebSocketServer();
-        await server.Start(httpListenerPrefix, udpListenerPort);
+        await server.Start(httpListenerPrefix);
 
 
 
@@ -609,6 +622,7 @@ class Program
         if (AllowGuestRSA.Allow)
             ServerStateConsole.WriteLine("> Guest " + DicoGuestTracker.Instance.GetValuesCount());
 
+        ServerStateConsole.WriteLine("> OwnerListener " + DicoOwnerListener.Instance.GetListenerCount());
         ServerStateConsole.WriteLine("> Handshake " + DicoRsaConnectionHandShake.Instance.GetValuesCount());
         ServerStateConsole.WriteLine("> Connected " + DicoWebSocketClientConnection.Instance.GetValuesCount());
         ServerStateConsole.WriteLine("> Connected Redirection " + WebSocketClientRedirectionList.Instance.ClientConnectedCount());
@@ -630,19 +644,20 @@ class Program
             {
                 toRemove.Add(item);
             }
+        
         }
 
         foreach (ulong i in toRemove)
         {
            WebSocketClientConnection connection= DicoWebSocketClientConnection.Instance.Get(i);
-
-
            DicoRsaConnectionHandShake.Instance.Remove(connection.m_handshake);
            DicoWebSocketClientConnection.Instance.Remove(i);
 
 
         }
+            DicoOwnerListener.Instance.RemoveInactive();
 
+        
         
     }
 
