@@ -5,10 +5,21 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
+  - enabled: 0
+    path: Assets/2021_08_19_FTLBullets_CapsuleCollisionWithMathAndJob/Demo.unity
+    guid: 298c117c44eff504f8a8d1ff821bedf0
   - enabled: 1
+    path: Assets/2024_04_16_IMMO_ShieldDrone/Scene/PushBytes.unity
+    guid: 4db7f60c4d1c67d439da42a428a436bb
+  - enabled: 0
     path: Assets/2024_04_04_GenereteRsaKeyInUnity/Demo Server.unity
     guid: 3f0325fa774f269499f42ab604887748
+  - enabled: 0
+    path: Assets/2024_04_04_GenereteRsaKeyInUnity/Demo Client.unity
+    guid: f4701149ce89b9b4187056d81b80967e
+  - enabled: 0
+    path: Assets/2024_04_16_IMMO_ShieldDrone/Drone Concept/Demo Drone Triangle.unity
+    guid: 4d17c2fc081b0f94f8b0e3a566065b00
   m_configObjects:
     com.unity.input.settings: {fileID: 11400000, guid: f7d7edaa688599d4b8be670c83815f20,
       type: 2}
-  m_UseUCBPForAssetBundles: 0

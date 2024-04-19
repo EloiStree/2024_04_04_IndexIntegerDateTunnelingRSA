@@ -24,56 +24,38 @@ class Program
 
         string m_salt = "Salt12345";
 
-     
-        if(args.Length > 0)
+
+        if (args.Length > 0)
         {
             m_password = args[0];
         }
 
 
 
-        bool sendMesssageToDebug = true;
-        if(sendMesssageToDebug)
+
+
+        string saltFile= "Salt/SaltUseToEncrypt.txt";
+        if (!File.Exists(saltFile))
         {
-            Timer timerDebug = new Timer((e) =>
-            {
-                Console.WriteLine("Action every 5 seconds");
-
-                try {
-                    byte[] bytes = new byte[12];
-
-                    int valueRandom = new Random().Next(int.MinValue, int.MaxValue);
-                    ulong date = (ulong)DateTimeOffset.Now.ToUnixTimeSeconds();
-
-                    BitConverter.GetBytes(valueRandom).CopyTo(bytes, 0);
-                    BitConverter.GetBytes(date).CopyTo(bytes, 4);
-                    WebSocketClientToServerRSA.SentToServerAsBinary(bytes);
-                }
-
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                }
-               
-            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
-        }
-        
-
-        if(!File.Exists("Salt/SaltUseToEncrypt.txt")){
             Directory.CreateDirectory("Salt");
-            File.WriteAllText("Salt/SaltUseToEncrypt.txt", Guid.NewGuid().ToString());
-            m_salt = File.ReadAllText("Salt/SaltUseToEncrypt.txt");
+            File.WriteAllText(saltFile, Guid.NewGuid().ToString());
+            m_salt = File.ReadAllText(saltFile);
         }
+        else
+        {
+            m_salt = File.ReadAllText(saltFile);
+        }
+
 
         RSA rsa = RSA.Create();
         rsa.KeySize = 1024;
         //Read a file name PrivateKey.txt and PublicKey.txt
         string path = Directory.GetCurrentDirectory();
         Console.WriteLine("Current Path:" + path);
-        string privateXmlKey="", publicXmlKey = "", privatePem = "", publicPem = "", privateKeyEthereum = "", publicKeyEthereum = "", address = "";
+        string privateXmlKey = "", publicXmlKey = "", privatePem = "", publicPem = "", privateKeyEthereum = "", publicKeyEthereum = "", address = "";
 
-      
-        if (!File.Exists("_RSA_PRIVATE_XML_ENCRYPTED.txt") )
+
+        if (!File.Exists("_RSA_PRIVATE_XML_ENCRYPTED.txt"))
         {
             PemToXmlConverter.Generate1024RsaKey(out privateXmlKey, out _, out _, out _);
             CreateEncryptedKeyFromPrivateXmlRSA(m_password, m_salt, privateXmlKey);
@@ -87,21 +69,42 @@ class Program
 
 
 
+        try
+        {
 
-        byte[] encryptBytesXmlRead = File.ReadAllBytes("_RSA_PRIVATE_XML_ENCRYPTED.txt");
-        EncryptionWithPassword.DecryptText(encryptBytesXmlRead, m_password, m_salt, out privateXmlKey);
+            byte[] encryptBytesXmlRead = File.ReadAllBytes("_RSA_PRIVATE_XML_ENCRYPTED.txt");
+            EncryptionWithPassword.DecryptText(encryptBytesXmlRead, m_password, m_salt, out privateXmlKey);
 
-        byte[] encryptBytesEthereumRead = File.ReadAllBytes("_ETH_PRIVATE_ENCRYPTED.txt");
-        EncryptionWithPassword.DecryptText(encryptBytesEthereumRead, m_password, m_salt, out privateKeyEthereum);
+            byte[] encryptBytesEthereumRead = File.ReadAllBytes("_ETH_PRIVATE_ENCRYPTED.txt");
+            EncryptionWithPassword.DecryptText(encryptBytesEthereumRead, m_password, m_salt, out privateKeyEthereum);
 
-        PemToXmlConverter.Generate1024RsaKey(privateXmlKey, out rsa, out publicXmlKey, out privatePem, out publicPem);
-        EthereumKeyGenerator.GenerateEthereumKey(privateKeyEthereum, out publicKeyEthereum, out address);
+            PemToXmlConverter.Generate1024RsaKey(privateXmlKey, out rsa, out publicXmlKey, out privatePem, out publicPem);
+            EthereumKeyGenerator.GenerateEthereumKey(privateKeyEthereum, out publicKeyEthereum, out address);
+        }
+        catch (Exception e)
+        {
 
+            Console.WriteLine("" +
+                "\n-------------------------------------------------" +
+                "\nDecryption of the private key failed... Exited." +
+                "\n\nAre you sure of your password ?" +
+                "\nDid you modify the Salt folder ?" +
+                "\n\nSalt and password what ?" +
+                "\n(Check the Youtube video explaining how to use this tool)" +
+                "\n\nAsk help on Discord if the documentation is not enough." +
+                "\n-------------------------------------------------" +
+                "\n\nError: " + e.StackTrace +
+                "\n-------------------------------------------------" );
+                
+            Console.ReadLine();
+            return;
+
+        }
 
         bool exportPassword = false;
         for (int i = 0; i < args.Length; i++)
         {
-            if (args[i]=="export")
+            if (args[i] == "export")
                 exportPassword = true;
         }
         if (exportPassword)
@@ -137,11 +140,12 @@ class Program
         }
         string[] lines = File.ReadAllLines(fileIpbroadcastBytes);
         BroadcastCallbackAsUDP.Instance.TryToAddByLines(lines);
-        foreach (BroadcastCallbackAsUDP.TargetIp target in BroadcastCallbackAsUDP.Instance.m_ipPortUDP) { 
-        
+        foreach (BroadcastCallbackAsUDP.TargetIp target in BroadcastCallbackAsUDP.Instance.m_ipPortUDP)
+        {
+
             Console.WriteLine("Broadcasting to: " + target.m_ipEndPoint.Address + ":" + target.m_ipEndPoint.Port);
         }
-       
+
         string serverUri = File.ReadAllText(fileTarget);
         WebSocketClientToServerRSA.m_publicKey = publicXmlKey;
         WebSocketClientToServerRSA.m_privateKey = privateXmlKey;
@@ -157,16 +161,20 @@ class Program
         Console.WriteLine("---------------------");
         Console.WriteLine("PUBLIC ETHEREUM:");
         Console.WriteLine("---------------------");
-        Console.WriteLine("https://etherscan.io/address/"+address);
+        Console.WriteLine("https://etherscan.io/address/" + address);
         Console.WriteLine(publicKeyEthereum);
         Console.WriteLine("---------------------");
         Console.WriteLine("\n\n\n\n");
 
+
+
+
         Task.Run(async () => await ListenUDP_Binary.ListenUDP(5010));
         Task.Run(async () => await ListenUDP_Text.ListenUDP(5011));
         Task.Run(async () => await ListenAsLocalWebsocket.Start("http://localhost:5012/"));
-        Task.Run( BroadcastCallbackAsUDP.Instance.Start);
-        
+        Task.Run(BroadcastCallbackAsUDP.Instance.Start);
+
+        SendMessageEveryNSeconds();
 
         WebSocketClientToServerRSA client = new WebSocketClientToServerRSA();
         await client.ConnectAndRun();
@@ -175,6 +183,36 @@ class Program
 
         Console.WriteLine("Press any key to exit...");
         Console.ReadKey();
+    }
+
+    private static void SendMessageEveryNSeconds()
+    {
+        bool sendMesssageToDebug = true;
+        if (sendMesssageToDebug)
+        {
+            Timer timerDebug = new Timer((e) =>
+            {
+                Console.WriteLine("Action every 5 seconds");
+
+                try
+                {
+                    byte[] bytes = new byte[12];
+
+                    int valueRandom = new Random().Next(int.MinValue, int.MaxValue);
+                    ulong date = (ulong)DateTimeOffset.Now.ToUnixTimeSeconds();
+
+                    BitConverter.GetBytes(valueRandom).CopyTo(bytes, 0);
+                    BitConverter.GetBytes(date).CopyTo(bytes, 4);
+                    WebSocketClientToServerRSA.SentToServerAsBinary(bytes);
+                }
+
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+
+            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(5));
+        }
     }
 
     private static void CreateEncryptedKeyFromPrivateEthereum(string m_password, string m_salt, string s)
