@@ -11,22 +11,29 @@ namespace CloudTunnelingLocalGateRSA
 
     internal class ListenAsLocalWebsocket
     {
-        public ListenAsLocalWebsocket Instance = new ListenAsLocalWebsocket();
+        public static ListenAsLocalWebsocket Instance = new ListenAsLocalWebsocket();
 
-        public HttpListener httpListener;
+        public static HttpListener httpListener;
 
-        public async Task Start(string httpListenerPrefix = "http://localhost:5002")
+        public static List<HttpListenerWebSocketContext> m_connectedCallback = new List<HttpListenerWebSocketContext>();
+
+        public static async Task Start(string httpListenerPrefix = "http://localhost:5002/")
         {
             httpListener = new HttpListener();
             httpListener.Prefixes.Add(httpListenerPrefix);
+            
+
             httpListener.Start();
 
-            ServerConsole.WriteLine("WebSocket server is running...");
+
+            Console.WriteLine("\n\n\n\n");
+            ServerConsole.WriteLine("Local Websocket: "+ httpListenerPrefix);
 
 
             while (true)
             {
                 HttpListenerContext context = await httpListener.GetContextAsync();
+                
                 if (context.Request.IsWebSocketRequest)
                 {
                     ProcessWebSocketRequest(context);
@@ -39,9 +46,10 @@ namespace CloudTunnelingLocalGateRSA
             }
         }
 
-        private async void ProcessWebSocketRequest(HttpListenerContext context)
+        private static async void ProcessWebSocketRequest(HttpListenerContext context)
         {
             HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(subProtocol: null);
+            m_connectedCallback.Add(webSocketContext);
             WebSocket webSocket = webSocketContext.WebSocket;
             ServerConsole.WriteLine($"Reqiest URI {webSocketContext.RequestUri}");
 
@@ -51,7 +59,6 @@ namespace CloudTunnelingLocalGateRSA
 
 
             byte[] buffer = new byte[600];
-            byte[] receivedMessageBytes = new byte[16];
 
             while (webSocket.State == WebSocketState.Open)
             {
@@ -59,11 +66,11 @@ namespace CloudTunnelingLocalGateRSA
                 {
 
                     WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                    ServerConsole.WriteLine($"Received message type: {result.MessageType} {result.Count}");
+                    ServerConsole.WriteLine($"Websocket, Received message type: {result.MessageType} {result.Count} {DateTime.UtcNow}");
 
                     if (result.MessageType == WebSocketMessageType.Binary)
                     {
-                        receivedMessageBytes = new byte[16];
+                        byte[]  receivedMessageBytes = new byte[16];
                         Array.Copy(buffer, 0, receivedMessageBytes, 0,16);
                         WebSocketClientToServerRSA.SentToServerAsBinary(receivedMessageBytes);
                         continue;
@@ -72,7 +79,6 @@ namespace CloudTunnelingLocalGateRSA
                     {
                         string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
                         WebSocketClientToServerRSA.SentToServerAsUTF8(receivedMessage);
-                        ServerConsole.WriteLine($"Received message : {receivedMessage}");
                         continue;
 
                     }
@@ -92,6 +98,41 @@ namespace CloudTunnelingLocalGateRSA
 
 
 
+        }
+
+        public void BroadcastToConnected(string message)
+        {
+
+
+            byte[] buffer = Encoding.UTF8.GetBytes(message);
+            BroadcastToConnected(buffer, WebSocketMessageType.Text);
+        }
+        public void BroadcastToConnected(byte[] message)
+        {
+            BroadcastToConnected(message, WebSocketMessageType.Binary);
+        }
+        public void BroadcastToConnected(byte[] message, WebSocketMessageType typeSend)
+        {
+
+            for (int i = m_connectedCallback.Count - 1; i >= 0; i--)
+            {
+                try
+                {
+                    WebSocket webSocket = m_connectedCallback[i].WebSocket;
+                    if (webSocket.State == WebSocketState.Open)
+                    {
+                        webSocket.SendAsync(new ArraySegment<byte>(message), typeSend, true, CancellationToken.None);
+                    }
+                    else
+                    {
+                        m_connectedCallback.RemoveAt(i);
+                    }
+                }
+                catch (Exception e)
+                {
+                    ServerConsole.WriteLine($"Error: {e.Message}");
+                }
+            }
         }
     }
 }
