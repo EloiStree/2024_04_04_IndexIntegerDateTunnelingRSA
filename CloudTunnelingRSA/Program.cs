@@ -65,7 +65,7 @@ partial class WebSocketServer
         internal bool m_useConsoleStatePrint=true;
     }
 
-    private const int BufferSize = 1024;
+    private const int BufferSize = 4080;
     private HttpListener httpListener;
 
 
@@ -124,7 +124,21 @@ partial class WebSocketServer
                 if(connectionHandShake!=null)
                 connectionHandShake.UpdateLastActivity();
 
-                WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                WebSocketReceiveResult result = null;
+                try {
+                    result= await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                
+                }catch(Exception ex)
+                {
+
+                    ServerConsole.WriteLine($"Exeception: {ex.StackTrace}");
+                    await Task.Delay(1);
+                    continue;
+                }
+                if (result == null) { 
+                    await Task.Delay(1);
+                    continue;
+                }
                 ServerConsole.WriteLine($"Received message type: {result.MessageType} {result.Count}");
                 ByteReceivedCount.Instance.AddByteCount(result.Count);
 
@@ -296,7 +310,8 @@ partial class WebSocketServer
 
     private ulong GetTimeUTCAsLong()
     {
-        return  (ulong)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond);
+        return (ulong) DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+       // return  (ulong)(DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond);
     }
 
     private async Task BufferToIndexIntegerDate(
@@ -333,6 +348,20 @@ partial class WebSocketServer
             ServerConsole.WriteLine($"Index:{indexLockedOn} Value:{value} TimeStampUtc:{timeStampUtc}");
             DicoIndexIntegerDate.Instance.Set(
                     indexLockedOn, value, timeStampUtc, out bool changed);
+<<<<<<< HEAD
+            bool useNeedChangeAntiSpam=false;
+            if (useNeedChangeAntiSpam) { 
+                if (changed)
+                {
+                    // ServerConsole.WriteLine($"> Try to push bytes: {receivedMessageBytes}");
+                    await TryPushInRedirection(websocket, receivedMessageBytes);
+                }
+                else
+                {
+                    await KillConnection(webSocketContext, "Not change was detected. To avoid spam, you were disconnected");
+                    return;
+                }
+=======
             if (changed)
             {
                 // ServerConsole.WriteLine($"> Try to push bytes: {receivedMessageBytes}");
@@ -342,11 +371,11 @@ partial class WebSocketServer
                 Array.Copy(receivedMessageBytes, 4, package, 0, 12);
                 PushBackToListenerRSA.Instance.PushBackBytes(
                     connectionHandShake.GetPublicKey(),package);
+>>>>>>> c0d130f2fb1c9c2323dae132e64ecaace225b88f
             }
             else
             {
-                await KillConnection(webSocketContext, "Not change was detected. To avoid spam, you were disconnected");
-                return;
+                await TryPushInRedirection(websocket, receivedMessageBytes);
             }
 
             
