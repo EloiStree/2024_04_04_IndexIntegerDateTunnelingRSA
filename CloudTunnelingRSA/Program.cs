@@ -112,6 +112,7 @@ partial class WebSocketServer
         RsaConnectionHandShake connectionHandShake = null;
         int indexLockedOn = 0; 
         bool isIndexLocked = false;
+        CancellationToken token = default(CancellationToken);
 
         try
         {
@@ -126,12 +127,20 @@ partial class WebSocketServer
 
                 WebSocketReceiveResult result = null;
                 try {
-                    result= await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                    if (buffer == null || webSocket ==null|| buffer.Length <= 12)
+                        continue;
+
+                    result= await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
+                    if (result == null || !result.EndOfMessage || result.Count==0 ) {
+                        await Task.Delay(1);
+                        continue;
+                    }
                 
-                }catch(Exception ex)
+                }
+                catch(Exception ex)
                 {
 
-                    ServerConsole.WriteLine($"Exeception: {ex.StackTrace}");
+                    ServerConsole.WriteLine($"Exeception: Stack:{ex.StackTrace} M:{ex.Message} S:{ ex.Source}");
                     await Task.Delay(1);
                     continue;
                 }
@@ -305,6 +314,7 @@ partial class WebSocketServer
                 await KillConnection(webSocketContext, "Exception: " + ex.StackTrace);
             ServerConsole.WriteLine($"Error: {ex.StackTrace}");
         }
+        token.ThrowIfCancellationRequested();
         ServerConsole.WriteLine($"End Connection {webSocketContext.RequestUri}");
     }
 
@@ -348,7 +358,7 @@ partial class WebSocketServer
             ServerConsole.WriteLine($"Index:{indexLockedOn} Value:{value} TimeStampUtc:{timeStampUtc}");
             DicoIndexIntegerDate.Instance.Set(
                     indexLockedOn, value, timeStampUtc, out bool changed);
-<<<<<<< HEAD
+
             bool useNeedChangeAntiSpam=false;
             if (useNeedChangeAntiSpam) { 
                 if (changed)
@@ -361,17 +371,7 @@ partial class WebSocketServer
                     await KillConnection(webSocketContext, "Not change was detected. To avoid spam, you were disconnected");
                     return;
                 }
-=======
-            if (changed)
-            {
-                // ServerConsole.WriteLine($"> Try to push bytes: {receivedMessageBytes}");
-                await TryPushInRedirection(websocket, receivedMessageBytes);
 
-                byte[] package= new byte[12];
-                Array.Copy(receivedMessageBytes, 4, package, 0, 12);
-                PushBackToListenerRSA.Instance.PushBackBytes(
-                    connectionHandShake.GetPublicKey(),package);
->>>>>>> c0d130f2fb1c9c2323dae132e64ecaace225b88f
             }
             else
             {
@@ -456,15 +456,22 @@ partial class WebSocketServer
 
         return Task.CompletedTask;
     }
+    public bool m_usePushBackToListener = true;
     private Task TryPushInRedirection(WebSocket webSocket, byte[] receivedMessage)
     {
+        byte[] copy = new byte[receivedMessage.Length];
+        receivedMessage.CopyTo(copy, 0); 
         List<WebSocketClientConnection> cs = WebSocketClientRedirectionList.Instance.GetList();
         foreach (var c in cs)
         {
             if (c !=null && c.m_webSocket.State == WebSocketState.Open)
             {
-                //ServerConsole.WriteLine("Sent message:" + receivedMessage.Length);
-                c.m_webSocket.SendAsync(new ArraySegment<byte>(receivedMessage), WebSocketMessageType.Binary, true, CancellationToken.None);
+                if (m_usePushBackToListener) { 
+                    c.m_webSocket.SendAsync(new ArraySegment<byte>(copy), WebSocketMessageType.Binary, true, CancellationToken.None);
+                    c.m_webSocket.SendAsync(new ArraySegment<byte>(new byte[0]), WebSocketMessageType.Binary, true, CancellationToken.None);
+                    ServerConsole.WriteLine("Sent message:" + copy.Length);
+                }
+                
 
             }
         }
