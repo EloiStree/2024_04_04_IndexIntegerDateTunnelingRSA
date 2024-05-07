@@ -67,7 +67,17 @@ print(f"{get_current_time_with_offset()} \t\t: Client with offset")
 time.sleep(3)
 print(f"{get_current_time_with_offset()} \t\t: Client with offset 3s later")
 
+
+private_key_path = os.path.abspath('RSA_PRIVATE_PEM.txt')
+
+print("---- RSA_PRIVATE_PEM.txt Path |", private_key_path)s
+
+
 # Check if 'private_key.pem' exists
+
+
+
+
 if not os.path.exists('RSA_PRIVATE_PEM.txt'):
     print ("Generating new keys")
     # Generate a new RSA key pair
