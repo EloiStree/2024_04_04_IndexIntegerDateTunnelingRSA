@@ -11,11 +11,10 @@ import base64
 import asyncio
 import websockets
 import time
-import websocket
 import threading
 import datetime
 import random
-
+import asyncio
 import struct
 import socket
 import os
@@ -26,6 +25,11 @@ ws_url = "ws://81.240.94.97:4501"
 
 public_key =None
 private_key =None
+
+use_random_push=True
+time_between_random_push=5
+random_range_min=15000
+random_range_max=45000
 
 # Check if 'private_key.pem' exists
 if not os.path.exists('RSA_PRIVATE_PEM.txt'):
@@ -116,7 +120,7 @@ def sign_message(message):
             hashes.SHA256()
         )
         print("Signature is valid.")
-    except InvalidSignature:
+    except Exception as e:
         print("Signature is invalid.")
 
 
@@ -131,14 +135,19 @@ websocket_linked=None
 
 
 
-def action():
+async def action():
+    usePrintDebug= False
+    useUTF8= False
     # Code for the action to be performed every 5 seconds
-    print("Performing action...")
+    if(usePrintDebug): 
+        print("Performing action...")
     if(is_connected_to_server):
-        print("Connected to server")
+        if(usePrintDebug): 
+            print("Connected to server")
         if websocket_linked is not None:
-            print("Sending message to server")
-            random_int = random.randint(1, 10000000)
+            if(usePrintDebug): 
+                print("Sending message to server")
+            random_int = random.randint(random_range_min, random_range_max)
             
             ulong_milliseconds = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)          
             data = bytearray(12)
@@ -147,29 +156,32 @@ def action():
             milliseconds_bytes = ulong_milliseconds.to_bytes(8, byteorder='little')
             data = random_bytes + milliseconds_bytes
 
-            datab64 =f"b|{base64.b64encode(data).decode('utf-8')}" 
-            print("Debug: ", data)
-            print("Size: ", len(data))
-            print(f"Random: {random_int} Milliseconds: {ulong_milliseconds}")
-            print("B64: ", datab64)
+            if(usePrintDebug): 
+                print("Debug: ", data)
+                print("Size: ", len(data))
+                print("B64: ", datab64)
             try:
-                #SEND DATA CREATE A ERROR BY BINARY SEND. PROTOCAL ERROR I SUPPOSE? SO I DO B64 in waiting to understand.
-                websocket_linked.send(datab64)
+                print(f"Random Push: {random_int} Milliseconds: {ulong_milliseconds}")
+                if(useUTF8):
+                    datab64 =f"b|{base64.b64encode(data).decode('utf-8')}" 
+                    await websocket_linked.send(datab64)
+                    if(usePrintDebug): 
+                        print("Data sent:", datab64)
+                else :
+                    await websocket_linked.send(data)
             except:
                 print("Error sending data")
 
 
 def perform_action():
     while True:
-        action()
-        time.sleep(5)
+        asyncio.run(action())
+        time.sleep(time_between_random_push)
 
-# Create a thread for performing the action
-action_thread = threading.Thread(target=perform_action)
 
-# Start the thread
-action_thread.start()
-
+if(use_random_push):
+    udp_thread = threading.Thread(target=perform_action)
+    udp_thread.start()
 
 
 def listen_udp():
@@ -202,7 +214,7 @@ udp_thread.start()
 
 
 
-def on_message(ws, message):
+async def on_message(ws, message):
     global is_connected_to_server
     print(f"Received message: {message}")
     if message.startswith("SIGNIN:"):
@@ -212,43 +224,50 @@ def on_message(ws, message):
         print(f"SIGNED:{signature_b64s}")
         to_send = f"SIGNED:{signature_b64s}"
         # Send the signature
-        ws.send(to_send)
+        await ws.send(to_send)
     
     if message.startswith("RSA:Verified"):
         print(f"RSA Verified :) ")
         is_connected_to_server = True
  
-def on_error(ws, error):
+async def on_error(ws, error):
     print(f"Error: {error}")
     global is_connected_to_server
     is_connected_to_server = False
 
-def on_close(ws):
+async def on_close(ws):
     global websocket_linked
     print("WebSocket connection closed")
     websocket_linked=None
 
-def on_open(ws):
+async def on_open(ws):
     global websocket_linked
     print("WebSocket connection opened")
     websocket_linked=ws
     
     message = "Hello "+public_pem.decode('utf-8')
-    ws.send(message)
+    await ws.send(message)
+
+
+async def websocket_listener(uri):
+    
+    async with websockets.connect(uri) as websocket:
+
+        await on_open(websocket)
+        while True:
+            try:
+
+                response = await websocket.recv()
+                print("Response received from server:", response)
+                await on_message(websocket, response)
+            except Exception as e:
+                print("Error receiving data:", str(e))
+                await on_error(websocket, str(e))
+                await on_close(websocket)
+            
 
 if __name__ == "__main__":
     
-    # Construct the WebSocket URL
-    
 
-    # Create a WebSocket connection
-    ws = websocket.WebSocketApp(ws_url,
-                                on_message=on_message,
-                                on_error=on_error,
-                                on_close=on_close)
-
-    ws.on_open = on_open
-
-    # Run the WebSocket connection
-    ws.run_forever()
+    asyncio.run(websocket_listener(ws_url))
     
