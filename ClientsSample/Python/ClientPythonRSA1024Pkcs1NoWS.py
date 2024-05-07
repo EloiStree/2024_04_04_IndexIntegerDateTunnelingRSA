@@ -18,6 +18,8 @@ import asyncio
 import struct
 import socket
 import os
+import ntplib
+from datetime import datetime, timezone
 
 
 udp_port_to_listen = 3614
@@ -30,6 +32,40 @@ use_random_push=True
 time_between_random_push=5
 random_range_min=15000
 random_range_max=45000
+
+
+NTP_SERVERS = ['3.be.pool.ntp.org']
+response = None
+for server in NTP_SERVERS:
+    client = ntplib.NTPClient()
+    response = client.request(server, version=3)
+    print(f"server: {server}")
+    print(f"client time of request: {datetime.fromtimestamp(response.orig_time, timezone.utc)}")
+    print(f"server responded with: {datetime.fromtimestamp(response.tx_time, timezone.utc)}")
+    print(f"current time: {datetime.now(timezone.utc)}")
+    print(f"offset: {response.offset}") 
+    orig_timestamp = response.orig_time
+    tx_timestamp = response.tx_time
+
+    # Convert NTP timestamps to datetime objects
+    orig_datetime = datetime.fromtimestamp(orig_timestamp,timezone.utc).timestamp()
+    tx_datetime = datetime.fromtimestamp(tx_timestamp,timezone.utc).timestamp()
+
+    print(f"{orig_datetime}\t\t:Client UTC")
+    print(f"{tx_datetime} \t\t: Server UTC")
+
+
+def get_current_time_with_offset():
+    global response
+    offset = response.offset
+    current_datetime = datetime.now(timezone.utc)
+    current_timestamp_utc = current_datetime.timestamp()
+    current_timestamp_with_offset = current_timestamp_utc + offset
+    return current_timestamp_with_offset
+
+print(f"{get_current_time_with_offset()} \t\t: Client with offset")
+time.sleep(3)
+print(f"{get_current_time_with_offset()} \t\t: Client with offset 3s later")
 
 # Check if 'private_key.pem' exists
 if not os.path.exists('RSA_PRIVATE_PEM.txt'):
@@ -149,7 +185,9 @@ async def action():
                 print("Sending message to server")
             random_int = random.randint(random_range_min, random_range_max)
             
-            ulong_milliseconds = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)          
+            ulong_milliseconds=int(get_current_time_with_offset() * 1000)
+
+            #ulong_milliseconds = int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000)          
             data = bytearray(12)
             
             random_bytes = random_int.to_bytes(4, byteorder='little')
@@ -184,6 +222,8 @@ if(use_random_push):
     udp_thread.start()
 
 
+
+
 def listen_udp():
     global udp_port_to_listen
     given_data_previous = ""
@@ -212,6 +252,17 @@ udp_thread = threading.Thread(target=listen_udp)
 # Start the thread
 udp_thread.start()
 
+
+async def on_int_as_bytes(ws, byte_received):
+
+    if byte_received is not None:
+        if len(byte_received) == 16:
+            index = struct.unpack('<i', byte_received[0:4])[0]
+            value = struct.unpack('<i', byte_received[4:8])[0]
+            ulong_milliseconds = struct.unpack('<q', byte_received[8:16])[0]
+        
+
+            print(f"Received Bytes {index} | {value} | { ulong_milliseconds}")
 
 
 async def on_message(ws, message):
@@ -251,23 +302,33 @@ async def on_open(ws):
 
 async def websocket_listener(uri):
     
-    async with websockets.connect(uri) as websocket:
+    while True:
+        async with websockets.connect(uri) as websocket:
 
-        await on_open(websocket)
-        while True:
-            try:
-
-                response = await websocket.recv()
-                print("Response received from server:", response)
-                await on_message(websocket, response)
-            except Exception as e:
-                print("Error receiving data:", str(e))
-                await on_error(websocket, str(e))
-                await on_close(websocket)
+            await on_open(websocket)
+            while websocket.open:
+                try:
+                    async for message in websocket:
+                        if isinstance(message, bytes):
+                            
+                            #print("Received binary message:", message)
+                            await on_int_as_bytes(websocket, message)
+                        elif isinstance(message, str):
+                            #print("Received text message:", message)
+                            await on_message(websocket, message)
+                        
+                            
+                except Exception as e:
+                    print("Error receiving data:", str(e))
+                    await on_error(websocket, str(e))
+                    
+            await on_close(websocket)
+        await asyncio.sleep(5)
+        print("Reconnecting to server...")
+        
             
 
 if __name__ == "__main__":
-    
 
     asyncio.run(websocket_listener(ws_url))
     
