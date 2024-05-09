@@ -29,7 +29,7 @@ usePrintDebug= False
 public_key =None
 private_key =None
 
-use_random_push=True
+use_random_push=False
 time_between_random_push=5
 random_range_min=15000
 random_range_max=45000
