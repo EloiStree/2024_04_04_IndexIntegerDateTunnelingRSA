@@ -1,5 +1,10 @@
 import pyxinput
 import time
+import socket
+import struct
+import random
+
+
 
 #pyxinput.test_virtual()
 
@@ -23,6 +28,11 @@ import time
  # TriggerR        , Right Trigger
 
 
+
+listener_udp_address = ('', 4561)
+
+
+
 int_offset=450000
 int_player_offset=100
 
@@ -43,16 +53,40 @@ for i in range(1,max_input+1):
 
 
 
-    print_dico = {
-        1: lambda x: print(x),
-        2: lambda x: print(x),
-        3: lambda x: print(x),
-    }
-    
+def release_all():
+        set_value_for_all('BtnA', 0),
+        set_value_for_all('BtnB', 0),
+        set_value_for_all('BtnX', 0),
+        set_value_for_all('BtnY', 0),
+        set_value_for_all('Dpad', 0),
+        set_value_for_all('BtnThumbL', 0),
+        set_value_for_all('BtnThumbR', 0),
+        set_value_for_all('BtnShoulderL', 0),
+        set_value_for_all('BtnShoulderR', 0),
+        set_value_for_all('BtnStart', 0),
+        set_value_for_all('BtnBack', 0),
+        set_value_for_all('TriggerL', 0),
+        set_value_for_all('TriggerR', 0),
+        set_value_for_all('AxisLx', 0),
+        set_value_for_all('AxisLy', 0),
+        set_value_for_all('AxisRx', 0),
+        set_value_for_all('AxisRy', 0),
+        
+def get_random_11():
+    return random.uniform(-1.0, 1.0)
 
 
-button_dico_all_down = {
+def all_player_move_randomly():
+    for key in pv:
+        pv[key].set_value('AxisLx', get_random_11())
+        pv[key].set_value('AxisLy', get_random_11())
+        pv[key].set_value('AxisRx', get_random_11())
+        pv[key].set_value('AxisRy', get_random_11())
+
+button_dico_all = {
     #ABXY
+    0: lambda: release_all(),
+    1: lambda: all_player_move_randomly(),
     1001: lambda: set_value_for_all('BtnA', 1),
     2001: lambda: set_value_for_all('BtnA', 0),
     1002: lambda: set_value_for_all('BtnB', 1),
@@ -62,13 +96,13 @@ button_dico_all_down = {
     1004: lambda: set_value_for_all('BtnY', 1),
     2004: lambda: set_value_for_all('BtnY', 0),
     #DPAD
-    1005: lambda: set_value_for_all('Dpad', 1),# 1 up 2 down 3 left 4 right
+    1005: lambda: set_value_for_all('Dpad', 2),# 2 down 
     2005: lambda: set_value_for_all('Dpad', 0),
-    1006: lambda: set_value_for_all('Dpad', 2),# 1 up 2 down 3 left 4 right
+    1006: lambda: set_value_for_all('Dpad', 1),# 1 up 
     2006: lambda: set_value_for_all('Dpad', 0),
-    1007: lambda: set_value_for_all('Dpad', 3),# 1 up 2 down 3 left 4 right
+    1007: lambda: set_value_for_all('Dpad', 4),#  4 left 
     2007: lambda: set_value_for_all('Dpad', 0),
-    1008: lambda: set_value_for_all('Dpad', 4),# 1 up 2 down 3 left 4 right
+    1008: lambda: set_value_for_all('Dpad', 8),# 8 right
     2008: lambda: set_value_for_all('Dpad', 0),
     
     #THUMB 
@@ -100,7 +134,7 @@ button_dico_all_down = {
     2027: lambda: set_value_for_all('TriggerL', 0.7),
     2028: lambda: set_value_for_all('TriggerL', 0.8),
     2029: lambda: set_value_for_all('TriggerL', 0.9),
-    1030: lambda: set_value_for_all('TriggerL', 1),
+    2030: lambda: set_value_for_all('TriggerL', 1),
     
     #TRIGGER
     2040: lambda: set_value_for_all('TriggerR', 0),
@@ -113,7 +147,7 @@ button_dico_all_down = {
     2047: lambda: set_value_for_all('TriggerR', 0.7),
     2048: lambda: set_value_for_all('TriggerR', 0.8),
     2049: lambda: set_value_for_all('TriggerR', 0.9),
-    1050: lambda: set_value_for_all('TriggerR', 1),
+    2050: lambda: set_value_for_all('TriggerR', 1),
     
     3100: lambda: set_value_for_all('AxisLx', -1),
     3101: lambda: set_value_for_all('AxisLx', -0.90),
@@ -126,6 +160,7 @@ button_dico_all_down = {
     3108: lambda: set_value_for_all('AxisLx', 0.75),
     3109: lambda: set_value_for_all('AxisLx', 0.90),
     3110: lambda: set_value_for_all('AxisLx', 1),
+    3111: lambda: set_value_for_all('AxisLy', get_random_11()),
     
     3200: lambda: set_value_for_all('AxisLy', -1),
     3201: lambda: set_value_for_all('AxisLy', -0.90),
@@ -138,6 +173,7 @@ button_dico_all_down = {
     3208: lambda: set_value_for_all('AxisLy', 0.75),
     3209: lambda: set_value_for_all('AxisLy', 0.90),
     3210: lambda: set_value_for_all('AxisLy', 1),
+    3211: lambda: set_value_for_all('AxisLy', get_random_11()),
     
     3300: lambda: set_value_for_all('AxisRx', -1),
     3301: lambda: set_value_for_all('AxisRx', -0.90),
@@ -150,6 +186,7 @@ button_dico_all_down = {
     3308: lambda: set_value_for_all('AxisRx', 0.75),
     3309: lambda: set_value_for_all('AxisRx', 0.90),
     3310: lambda: set_value_for_all('AxisRx', 1),
+    3311: lambda: set_value_for_all('AxisLy', get_random_11()),
     
     3400: lambda: set_value_for_all('AxisRy', -1),
     3401: lambda: set_value_for_all('AxisRy', -0.90),
@@ -162,55 +199,40 @@ button_dico_all_down = {
     3408: lambda: set_value_for_all('AxisRy', 0.75),
     3409: lambda: set_value_for_all('AxisRy', 0.90),
     3410: lambda: set_value_for_all('AxisRy', 1),
+    3411: lambda: set_value_for_all('AxisLy', get_random_11()),
     
     
     
     }
 
 
+# Create a UDP socket
 
-while True: 
-        
-    for key in pv:
-        pv[key].set_value('BtnUp', 1)
-        print(f"{key} BtnA: {1}")
-        time.sleep(0.01)
-    time.sleep(0.1)
-    for key in pv:
-        pv[key].set_value('BtnA', 0)
-        time.sleep(0.01)
+# Bind the socket to a specific IP address and port
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+sock.bind(listener_udp_address)
 
-    time.sleep(1)
-    for key in pv:
-        pv[key].set_value('AxisLx', -1)
-        time.sleep(0.01)
 
-    time.sleep(1)
-    for key in pv:
-        pv[key].set_value('AxisLx', 1) 
-        time.sleep(0.01)
-        
-        
-    time.sleep(1)
-    for key in pv:
-        pv[key].set_value('AxisLy', -1)
-        time.sleep(0.01)
 
-    time.sleep(1)
-    for key in pv:
-        pv[key].set_value('AxisLy', 1) 
-        time.sleep(0.01)
-        
-    time.sleep(1)
-    
-    for key in pv:
-        pv[key].set_value('AxisLx', 0)
-        time.sleep(0.01)
 
-    time.sleep(1)
-    for key in pv:
-        pv[key].set_value('BtnA', 0)
-        time.sleep(0.01)
+def integer_to_xbox_input(int_value):
+    if button_dico_all.get(int_value) is not None:
+        print(f"Received {int_value}")
+        button_dico_all[int_value]()
+    else :
+        print(f"Received {int_value} not found")
 
-    time.sleep(1)
-        
+print(f"Listening for incoming data... port {listener_udp_address[1]}")
+# Listen for incoming data
+while True:
+    byte_received, address = sock.recvfrom(1024)  # Adjust the buffer size as needed
+    print(f'Received {len(byte_received)} bytes from {address}: {byte_received}')
+    if byte_received is not None:
+        if len(byte_received) == 16:
+            index = struct.unpack('<i', byte_received[0:4])[0]
+            value = struct.unpack('<i', byte_received[4:8])[0]
+            ulong_milliseconds = struct.unpack('<q', byte_received[8:16])[0]
+            print(f"Received Bytes {index} | {value} | { ulong_milliseconds}")
+            integer_to_xbox_input(value)
+            
+            
