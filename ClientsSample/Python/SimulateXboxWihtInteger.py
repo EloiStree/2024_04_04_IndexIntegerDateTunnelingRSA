@@ -96,13 +96,13 @@ button_dico_all = {
     1004: lambda: set_value_for_all('BtnY', 1),
     2004: lambda: set_value_for_all('BtnY', 0),
     #DPAD
-    1005: lambda: set_value_for_all('Dpad', 1),# 1 up 2 down 3 left 4 right
+    1005: lambda: set_value_for_all('Dpad', 2),# 2 down 
     2005: lambda: set_value_for_all('Dpad', 0),
-    1006: lambda: set_value_for_all('Dpad', 2),# 1 up 2 down 3 left 4 right
+    1006: lambda: set_value_for_all('Dpad', 1),# 1 up 
     2006: lambda: set_value_for_all('Dpad', 0),
-    1007: lambda: set_value_for_all('Dpad', 3),# 1 up 2 down 3 left 4 right
+    1007: lambda: set_value_for_all('Dpad', 4),#  4 left 
     2007: lambda: set_value_for_all('Dpad', 0),
-    1008: lambda: set_value_for_all('Dpad', 4),# 1 up 2 down 3 left 4 right
+    1008: lambda: set_value_for_all('Dpad', 8),# 8 right
     2008: lambda: set_value_for_all('Dpad', 0),
     
     #THUMB 
