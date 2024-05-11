@@ -21,8 +21,6 @@ import os
 import ntplib
 from datetime import datetime, timezone
 import requests
-import requests
-import socket
 
 
 ## ## ## ## ## ## ## ## ## ## ## ## ## 
@@ -568,8 +566,27 @@ async def side_thread_function_websocket_server():
     await websockets.serve(handler_local_websocket_server, "localhost", local_websocket_server_port)
     #asyncio.get_event_loop().run_until_complete(start_server_local)
 
-
+def get_public_ip():
+        response = requests.get('https://api.ipify.org')
+        if response.status_code == 200:
+            return response.text
+        else:
+            return None
+    
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.254.254.254', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
         
+
 async def main():
     
     # Create tasks
@@ -591,24 +608,14 @@ if __name__ == "__main__":
     print(f"Broadcasting server int changeto local device ports: {ipv4_port_list}") 
     print(f"Network Time Protocol (NTP) used: {NTP_SERVERS}") 
 
-    def get_public_ip():
-        response = requests.get('https://api.ipify.org')
-        if response.status_code == 200:
-            return response.text
-        else:
-            return None
+   
 
     public_ip = get_public_ip()
     if public_ip:
         print(f"Public IP: {public_ip}")
-
-    def get_ipv4_address():
-        hostname = socket.gethostname()
-        ip_address = socket.gethostbyname(hostname)
-        return ip_address
-
-    ipv4_address = get_ipv4_address()
-    print(f"Current IPV4 address: {ipv4_address}")
+ 
+    
+    print(f"Current IPV4 address: {get_ip()}")
 
 
     asyncio.run(main())
