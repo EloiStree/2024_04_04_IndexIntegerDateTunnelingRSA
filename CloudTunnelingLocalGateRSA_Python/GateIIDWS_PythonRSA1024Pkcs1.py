@@ -94,6 +94,7 @@ use_print_debug= False
 ## Use a random push of integer to debug the connection
 use_random_push=False
 
+use_print_on_int_change=True
 
 
 ## List of local port to broadcast the data to load from PORT.txt
@@ -471,7 +472,8 @@ async def on_byte_received_as_int_to_be_broadcast(ws, byte_received):
             value = struct.unpack('<i', byte_received[4:8])[0]
             ulong_milliseconds = struct.unpack('<q', byte_received[8:16])[0]
             await broadcast_iid_on_udp_port(byte_received)
-            print_debug(f"Received Bytes {index} | {value} | { ulong_milliseconds}")
+            if use_print_on_int_change:
+                print(f"R: {index} | {value} | { ulong_milliseconds}")
 
 
 
