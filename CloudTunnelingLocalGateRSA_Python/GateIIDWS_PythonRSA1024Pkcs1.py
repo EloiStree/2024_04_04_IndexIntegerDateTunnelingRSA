@@ -21,6 +21,8 @@ import os
 import ntplib
 from datetime import datetime, timezone
 import requests
+import requests
+import socket
 
 
 ## ## ## ## ## ## ## ## ## ## ## ## ## 
@@ -436,12 +438,20 @@ def loop_thread_listen_udp():
         # Process the received data
         if(websocket_linked is not None and  is_connected_to_server):
             try:
-                if len(data) ==4:
+                if data.startswith(b'i:'):
+                    rest_of_byte = data[2:]
+                    try:
+                        parsed_int = int(rest_of_byte)
+                        asyncio.run(push_int_to_server_iid(parsed_int))
+                    except ValueError:
+                        print("")
+                elif len(data) ==4:
                     int_to_push = struct.unpack('<i', data[0:4])[0]
                     print_debug(f"UDP Int message from {address}: {int_to_push}")
                     asyncio.run(push_int_to_server_iid(int_to_push))
-                if len(data) ==12:                    
+                elif len(data) ==12:                    
                     asyncio.run(push_byte_as_raw_to_server_iid(data))
+                                    
             except Exception as e:
                 print_debug_params("Error sending data:", str(e))
 
@@ -580,6 +590,26 @@ if __name__ == "__main__":
     print(f"Broadcasting server int change to local app ports: {local_port_list}")
     print(f"Broadcasting server int changeto local device ports: {ipv4_port_list}") 
     print(f"Network Time Protocol (NTP) used: {NTP_SERVERS}") 
+
+    def get_public_ip():
+        response = requests.get('https://api.ipify.org')
+        if response.status_code == 200:
+            return response.text
+        else:
+            return None
+
+    public_ip = get_public_ip()
+    if public_ip:
+        print(f"Public IP: {public_ip}")
+
+    def get_ipv4_address():
+        hostname = socket.gethostname()
+        ip_address = socket.gethostbyname(hostname)
+        return ip_address
+
+    ipv4_address = get_ipv4_address()
+    print(f"Current IPV4 address: {ipv4_address}")
+
 
     asyncio.run(main())
     print(f"Exiting... ") 
