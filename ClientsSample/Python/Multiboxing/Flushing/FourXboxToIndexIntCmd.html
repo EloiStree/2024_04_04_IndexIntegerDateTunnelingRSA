@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamepad Joystick and Button Listener</title>
+</head>
+<body>
+    <div id="sentBytesDiv"></div>
+  <script>
+
+    // Function to generate a random integer between min and max (inclusive)
+    function getRandomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    var intIndex0 = getRandomInt(-2000000000,2000000000);
+    var intIndex1 = intIndex0+1;
+    var intIndex2 = intIndex0+2;
+    var intIndex3 = intIndex0+3;
+    var intCmd = 1000000001;
+
+    var intCmdPrevious0=1000000001;
+    var intCmdPrevious1=1000000001;
+    var intCmdPrevious2=1000000001;
+    var intCmdPrevious3=1000000001;
+
+    // Function to convert an integer to a byte array with little-endian encoding
+    function intToBytesLittleEndian(value) {
+      const byteArray = new Uint8Array(4);
+      byteArray[0] = value & 0x000000FF;
+      byteArray[1] = (value & 0x0000FF00) >> 8;
+      byteArray[2] = (value & 0x00FF0000) >> 16;
+      byteArray[3] = (value & 0xFF000000) >> 24;
+      return byteArray;
+    }
+    const urlParams = new URLSearchParams(window.location.search);
+let param1 = urlParams.get('ip');
+let param2 = urlParams.get('port');
+
+// Set default values if parameters are empty or do not exist
+param1 = param1 || '127.0.0.1';
+param2 = param2 || '7065';
+
+// Construct the WebSocket URL with parameters
+const socket = new WebSocket(`ws://${param1}:${param2}`);
+    socket.binaryType = 'arraybuffer'; // Set binary type for socket
+
+    // Get reference to the div to display sent bytes
+    const sentBytesDiv = document.getElementById('sentBytesDiv');
+
+    function sendIntegersAsBytes(intIndex, intCmd) {
+        const byteArr1 = intToBytesLittleEndian(intIndex);
+        const byteArr2 = intToBytesLittleEndian(intCmd);
+
+        const data = new Uint8Array([...byteArr1, ...byteArr2]);
+
+        socket.send(data);
+        console.log('Sent data:', data);
+
+        // Display sent bytes in the HTML document
+        sentBytesDiv.innerHTML = `<p>Sent Bytes: ${Array.from(data).join(', ')}</p>`;
+    }
+
+    // Event listener for WebSocket open
+    socket.addEventListener('open', function (event) {
+      console.log('WebSocket connection established.');
+
+      setInterval(() => {
+        const randomInt1 = 555;
+        const randomInt2 = 5556;
+
+        const byteArr1 = intToBytesLittleEndian(randomInt1);
+        const byteArr2 = intToBytesLittleEndian(randomInt2);
+
+        const data = new Uint8Array([...byteArr1, ...byteArr2]);
+
+        socket.send(data);
+        console.log('Sent data:', data);
+
+        // Display sent bytes in the HTML document
+        sentBytesDiv.innerHTML = `<p>Sent Bytes: ${Array.from(data).join(', ')}</p>`;
+      }, 5000);
+    });
+
+    // Event listener for WebSocket errors
+    socket.addEventListener('error', function (error) {
+      console.error('WebSocket error:', error);
+    });
+    
+    window.addEventListener("gamepadconnected", function(e) {
+      console.log("Gamepad connected at index " + e.gamepad.index);
+      createAxesList(e.gamepad.index);
+      createButtonsList(e.gamepad.index);
+      // Start monitoring the gamepad for joystick movements and button presses
+      requestAnimationFrame(updateGamepad);
+    });
+
+    function createAxesList(index) {
+      var axesList = document.createElement('ul');
+      axesList.id = 'axesValues_' + index;
+      document.body.appendChild(axesList);
+    }
+
+    function createButtonsList(index) {
+      var buttonsList = document.createElement('ul');
+      buttonsList.id = 'buttonsValues_' + index;
+      document.body.appendChild(buttonsList);
+    }
+
+    function updateGamepad() {
+      var gamepads = navigator.getGamepads();
+      for (var i = 0; i < gamepads.length; i++) {
+        var gamepad = gamepads[i];
+        if (gamepad) {
+          // Get the axes values
+          var axesValues = gamepad.axes;
+
+          // Get the button values
+          var buttonsValues = gamepad.buttons;
+          intCmd = 1000000000; // Reset intCmd value
+
+          // Display the axes values and button values in the corresponding lists
+          displayAxesValues(i, axesValues);
+          displayButtonsValues(i, buttonsValues);
+          if(i==0 && intCmdPrevious0!=intCmd){
+                intCmdPrevious0=intCmd;
+                sendIntegersAsBytes(intIndex0, intCmd);
+            }
+          if(i==1&& intCmdPrevious1!=intCmd){
+                intCmdPrevious1=intCmd;
+                sendIntegersAsBytes(intIndex1, intCmd);
+            }
+          if(i==2&& intCmdPrevious2!=intCmd){
+                intCmdPrevious2=intCmd;
+                sendIntegersAsBytes(intIndex2, intCmd);
+            }
+          if(i==3&& intCmdPrevious3!=intCmd){
+                intCmdPrevious3=intCmd;
+                sendIntegersAsBytes(intIndex3, intCmd);
+            }
+        }
+      }
+      // Continue monitoring for joystick movements and button presses
+      requestAnimationFrame(updateGamepad);
+    }
+
+    function displayAxesValues(index, values) {
+      var axesList = document.getElementById('axesValues_' + index);
+      if (!axesList) return; // Exit if the list is not found
+
+      axesList.innerHTML = ''; // Clear previous values
+
+      // Create list items for each axis value
+      for (var i = 0; i < values.length; i++) {
+        var li = document.createElement('li');
+        li.textContent = 'Gamepad ' + index + ', Axis ' + i + ': ' + values[i];
+        axesList.appendChild(li);
+      }
+      if(values.length >= 4){
+        if(Math.round(values[0]*10)!=0.0)
+        intCmd += 10000 * Math.round(((((values[0] + 1.0) /2.0) * 8.0) + 1.0));
+        if(Math.round(values[1]*10)!=0.0)
+        intCmd += 1000 * Math.round((((1.0-((values[1] + 1.0)/2.0)) * 8.0) + 1.0));
+        if(Math.round(values[2]*10)!=0.0)
+        intCmd += 100 * Math.round(((((values[2] + 1.0) /2.0) * 8.0) + 1.0));
+        if(Math.round(values[3]*10)!=0.0)
+        intCmd += 10 * Math.round((((1.0-((values[3] + 1.0) /2.0)) * 8.0) + 1.0));
+      }
+    }
+
+    function displayButtonsValues(index, values) {
+      var buttonsList = document.getElementById('buttonsValues_' + index);
+      if (!buttonsList) return; // Exit if the list is not found
+
+      buttonsList.innerHTML = ''; // Clear previous values
+
+      // Create list items for each button value
+      for (var i = 0; i < values.length; i++) {
+        var li = document.createElement('li');
+        li.textContent = 'Gamepad ' + index + ', Button ' + i + ': ' + (values[i].pressed ? 'Pressed' : 'Released');
+        buttonsList.appendChild(li);
+      }
+      if(values.length >= 8){
+        if(values[0].pressed ||values[4].pressed  ) intCmd += 100000000;
+        if(values[1].pressed ||values[5].pressed  ) intCmd += 10000000;
+        if(values[2].pressed ||values[6].pressed  ) intCmd += 1000000;
+        if(values[3].pressed ||values[7].pressed  ) intCmd += 100000;
+      }
+    }
+  </script>
+</body>
+</html>
