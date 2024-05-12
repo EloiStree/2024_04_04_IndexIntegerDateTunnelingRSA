@@ -5,6 +5,7 @@ import pyperclip
 import psutil
 import pygetwindow as gw
 import asyncio
+import threading
 
 
 
@@ -13,7 +14,11 @@ import asyncio
 player_index_to_window_index ={}
 
 ## use to broadcast on target window from source index id
-player_index_to_window_index [6]= [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+player_index_to_window_index [1]= [0]
+player_index_to_window_index [2]= [1]
+player_index_to_window_index [3]= [2]
+player_index_to_window_index [4]= [3]
+player_index_to_window_index [5]= [0,1,2,3]
 
 
 integer_to_key_mapping = {}
@@ -21,7 +26,7 @@ integer_to_key_mapping[103] = ["Left",True]
 integer_to_key_mapping[203] = ["Left",False]
 integer_to_key_mapping[104] = ["Right",True]
 integer_to_key_mapping[204] = ["Right",False]
-integer_to_key_mapping[103] = ["Up",True]
+integer_to_key_mapping[101] = ["Up",True]
 integer_to_key_mapping[201] = ["Up",False]
 integer_to_key_mapping[102] = ["Down",True]
 integer_to_key_mapping[202] = ["Down",False]
@@ -77,6 +82,8 @@ def get_all_windows(title):
     list_window_found = [window for window in gw.getAllWindows() if title in window.title]
     return list_window_found
 
+
+
 def find_in_all(title):
     global target_window_index
     list_window_found = [window for window in gw.getAllWindows() if title in window.title]
@@ -107,6 +114,8 @@ def find_in_all_count(title):
 
 all_found_windows_at_start = get_all_windows(window_title)
 
+
+
 ## window_title = "10 Second Ninja"
 ## window_title = "MORDHAU  "
 ## window_title = "Hollow Knight"
@@ -119,6 +128,9 @@ use_print_log=False
 
 print (f"Window found:{first_window_foundhwnd} Count:{found_window_count}")
 
+for windowt in all_found_windows_at_start:
+    print("Window Title:", windowt.title)
+    print("Window ID:", windowt._hWnd)
 
 
 # Define the necessary structures
@@ -191,40 +203,8 @@ def release_key(hexKeyCode):
 
 
 
-def def_try_to_execute(key_name):
-
-    
-
-    if key_name is None or len(key_name)<=0:
-        return
-    key_name= key_name.lower();
-    text_array = key_name.strip().split(' ')
-    if text_array is None or len(text_array)<=0:
-        return
-    
-    is_true = text_array[0]
-    if len(text_array)<2:
-        return
-    command = text_array[1]
 
 
-    if len(text_array)== 2:
-        if use_print_log:
-            print(f"_{is_true}_{command}_")
-        if command in keyboard_mappings:
-
-            if use_print_log:
-                print(f"_{is_true}_{command}_InDico_{keyboard_mappings[command]}")
-            if is_true== "1":
-                send_key_press(first_window_foundhwnd, keyboard_mappings[command])
-            else:
-                send_key_release(first_window_foundhwnd, keyboard_mappings[command])
-    else:
-        print(f"_{is_true}_{command}_")
-    
-        
-
-    
 
 timebetweenaction=0.1
 timepress=0.1
@@ -251,28 +231,30 @@ def enum_child_windows(parent_hwnd):
 def is_window_focused(hwnd):
     return user32.GetForegroundWindow() == hwnd
 
-def send_key(hwnd, key_code):
+# def send_key(hwnd, key_code):
     
-        child_windows = enum_child_windows(hwnd)
-        for child_hwnd in child_windows:
-            send_key_press(child_hwnd, key_code)
-            time.sleep(0.1)  # Optional delay between keydown and keyup
-            send_key_release(child_hwnd, key_code)
+#         child_windows = enum_child_windows(hwnd)
+#         # for child_hwnd in child_windows:
+#         #     send_key_press(child_hwnd, key_code)
+#         #     time.sleep(0.1)  # Optional delay between keydown and keyup
+#         #     send_key_release(child_hwnd, key_code)
 
 def send_key_press(hwnd, key_code):
    
-        
-        ctypes.windll.user32.SendMessageW(hwnd, WM_KEYDOWN, key_code, 0)
-        child_windows = enum_child_windows(hwnd)
-        for child_hwnd in child_windows:
-            ctypes.windll.user32.SendMessageW(child_hwnd, WM_KEYDOWN, key_code, 0)
+        #print("A")
+        ctypes.windll.user32.PostMessageW(hwnd, WM_KEYDOWN, key_code, 0)
+
+        #print("B")
+        # child_windows = enum_child_windows(hwnd)
+        # for child_hwnd in child_windows:
+        #     ctypes.windll.user32.SendMessageW(child_hwnd, WM_KEYDOWN, key_code, 0)
 
 def send_key_release(hwnd, key_code):
    
-        ctypes.windll.user32.SendMessageW(hwnd, WM_KEYUP, key_code, 0)
-        child_windows = enum_child_windows(hwnd)
-        for child_hwnd in child_windows:
-            ctypes.windll.user32.SendMessageW(child_hwnd, WM_KEYUP, key_code, 0)
+        ctypes.windll.user32.PostMessageW(hwnd, WM_KEYUP, key_code, 0)
+        # child_windows = enum_child_windows(hwnd)
+        # for child_hwnd in child_windows:
+        #     ctypes.windll.user32.SendMessageW(child_hwnd, WM_KEYUP, key_code, 0)
 
 
 
@@ -287,13 +269,27 @@ def check_and_copy(message):
         return False
 
 
+for key in integer_to_key_mapping:
+    integer_to_key_mapping[key][0] =integer_to_key_mapping[key][0].strip().lower()
+
+    
 
 def push_to_all_integer(int_value):
     print("Un coded yet")
 
+def push_test(window, press, key_id):
+    #print(f"Push {press} {key_id} to {window.title}")
+    if window:
+        if press==True:
+            send_key_press(window._hWnd, key_id)
+        else:
+            send_key_release(window._hWnd, key_id)
+
+
 def push_to_index_integer(int_index, int_value):
     global keyboard_mappings
-    print(f"R | Index {int_index}| Value {int_value}")
+    #print("start")
+    #print(f"R | Index {int_index}| Value {int_value}")
     key_name_last_found=""
     press_last_found=False
     one_found=False
@@ -305,32 +301,26 @@ def push_to_index_integer(int_index, int_value):
         for window_index in window_index_list:
             ## If the window index in range of existing one at start
             if window_index < len(all_found_windows_at_start):
-                ## Get the window pointer to broadcast
-                window = all_found_windows_at_start[window_index]
-                ## If the window is existing
-                if window:
                     ## If the value is existing in the mapping allows to player
                     if(int_value in integer_to_key_mapping):
                         ## Get the action to do and the pression or release wanted.
                         store_pression_info= integer_to_key_mapping[int_value]
-                        key_name =str(store_pression_info[0]).strip().lower()
+                        key_name =store_pression_info[0]
                         press= store_pression_info[1]
-                        press_last_found=press
-                        key_name_last_found= key_name
                         ## If the key name is existing in the range of possible input
                         
                         if key_name in keyboard_mappings:
                             key_id = keyboard_mappings[key_name]
-                            one_found = True
-                            print(f"Id {key_id} Found {one_found}")
-                            if press==True:
-                                send_key_press(window._hWnd, key_id)
-                            else:
-                                send_key_release(window._hWnd, key_id)
+                            #print(f"Id {key_id} Found {one_found}")
+                             ## Get the window pointer to broadcast
+                            window = all_found_windows_at_start[window_index]
+                            ## If the window is existing
+                            push_test(window, press, key_id)
 
-        if(one_found):
-            print(f"Index {int_index} | Value {int_value} | Key {key_name_last_found} | Press {press_last_found}")
+        #if(one_found):
+        #    print(f"Index {int_index} | Value {int_value} | Key {key_name_last_found} | Press {press_last_found}")
   
+   # print("Stop")
 
 
 
@@ -379,7 +369,10 @@ async def async_task():
                     int_index= int.from_bytes(data[0:4], byteorder='little')
                     int_value= int.from_bytes(data[4:8], byteorder='little')
                     long_data_2= int.from_bytes(data[8:16], byteorder='little')
+                    #print("Index",int_index,"Value",int_value)
                     push_to_index_integer(int_index, int_value)
+                    # thread = threading.Thread(target=push_to_index_integer, args=(int_index, int_value))
+                    # thread.start()
 
 
 
