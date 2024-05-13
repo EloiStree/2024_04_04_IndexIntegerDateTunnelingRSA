@@ -52,7 +52,7 @@ gwQco1KRMDSmXSMkDwIDAQAB
 
 
                 console.log('Code Start ');
-var socket = new WebSocket('ws://localhost:3615');
+var socket = new WebSocket('ws://81.240.94.97:4501');
 var isConnectionValide=false;
 
 
