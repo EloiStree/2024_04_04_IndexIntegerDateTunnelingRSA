@@ -6,6 +6,7 @@ port = 3614  # UDP port number
 time_wait = 1  # Time to wait before closing the socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
+# Example Scratch https://scratch.mit.edu/projects/1018559011/editor/
 
 dico_previous_state = {}
 

@@ -1,9 +1,8 @@
+# Example Scratch https://scratch.mit.edu/projects/1018559011/editor/
 import socket
 import struct
-#import keyboard
 import time
 import pyautogui
-
 server_address = ('', 5648)
 
 
