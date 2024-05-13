@@ -10,15 +10,16 @@ import threading
 
 
 
+debug_at_pression_send=True
 
 player_index_to_window_index ={}
 
 ## use to broadcast on target window from source index id
-player_index_to_window_index [1]= [0]
-player_index_to_window_index [2]= [1]
-player_index_to_window_index [3]= [2]
-player_index_to_window_index [4]= [3]
-player_index_to_window_index [5]= [0,1,2,3]
+player_index_to_window_index [2]= [0]
+player_index_to_window_index [3]= [1]
+player_index_to_window_index [4]= [2]
+player_index_to_window_index [5]= [3]
+player_index_to_window_index [6]= [0,1,2,3]
 
 
 integer_to_key_mapping = {}
@@ -31,14 +32,26 @@ integer_to_key_mapping[201] = ["Up",False]
 integer_to_key_mapping[102] = ["Down",True]
 integer_to_key_mapping[202] = ["Down",False]
 
-integer_to_key_mapping[116] = ["A" ,True]
-integer_to_key_mapping[216] = ["A" ,False]
-integer_to_key_mapping[112] = ["Z",True]
-integer_to_key_mapping[212] = ["Z",False]
-integer_to_key_mapping[113] = ["E",True]
-integer_to_key_mapping[213] = ["E",False]
-integer_to_key_mapping[114] = ["R",True]
-integer_to_key_mapping[214] = ["R",False]
+#integer_to_key_mapping[116] = ["A" ,True]
+#integer_to_key_mapping[216] = ["A" ,False]
+#integer_to_key_mapping[112] = ["Z",True]
+#integer_to_key_mapping[212] = ["Z",False]
+#integer_to_key_mapping[113] = ["E",True]
+#integer_to_key_mapping[213] = ["E",False]
+#integer_to_key_mapping[114] = ["R",True]
+#integer_to_key_mapping[214] = ["R",False]
+
+
+integer_to_key_mapping[116] = ["F1" ,True]
+integer_to_key_mapping[216] = ["F1" ,False]
+integer_to_key_mapping[112] = ["F2",True]
+integer_to_key_mapping[212] = ["F2",False]
+integer_to_key_mapping[113] = ["F3",True]
+integer_to_key_mapping[213] = ["F3",False]
+integer_to_key_mapping[114] = ["F4",True]
+integer_to_key_mapping[214] = ["F4",False]
+integer_to_key_mapping[199] = ["Escape",True]
+integer_to_key_mapping[299] = ["Escape",False]
 
 
 
@@ -62,8 +75,14 @@ target_window_index = 0
 
 
 ## What is the exact name to find in of the window we need to find.
-window_title = "bgb - SUPER MARIOLAND"
-window_title = "World of Warcraft"
+#window_title = "bgb - SUPER MARIOLAND"
+#window_title = "World of Warcraft"
+
+window_title = "10 Second Ninja"
+## window_title = "MORDHAU  "
+## window_title = "Hollow Knight"
+## window_title = "Chrome"
+
 
 # Use real will simulate key, use false will send fake key
 
@@ -114,12 +133,6 @@ def find_in_all_count(title):
 
 all_found_windows_at_start = get_all_windows(window_title)
 
-
-
-## window_title = "10 Second Ninja"
-## window_title = "MORDHAU  "
-## window_title = "Hollow Knight"
-## window_title = "Chrome"
 
 
 first_window_foundhwnd = find_window(window_title)
@@ -278,12 +291,18 @@ def push_to_all_integer(int_value):
     print("Un coded yet")
 
 def push_test(window, press, key_id):
+    global debug_at_pression_send
     #print(f"Push {press} {key_id} to {window.title}")
     if window:
         if press==True:
+            if debug_at_pression_send:
+                print(f"Press {key_id} to {window.title}")
             send_key_press(window._hWnd, key_id)
         else:
+            if debug_at_pression_send:
+                print(f"Release {key_id} to {window.title}")
             send_key_release(window._hWnd, key_id)
+            
 
 
 def push_to_index_integer(int_index, int_value):
@@ -354,6 +373,8 @@ async def async_task():
         try:
             while True:
                 data, addr = sock.recvfrom(1024)  
+                #print("received message:", data)  
+                #print(f"R| {len(data)} | {data}")
                 if(len(data)==4):
                     int_value = int.from_bytes(data, byteorder='little')
 
@@ -369,7 +390,7 @@ async def async_task():
                     int_index= int.from_bytes(data[0:4], byteorder='little')
                     int_value= int.from_bytes(data[4:8], byteorder='little')
                     long_data_2= int.from_bytes(data[8:16], byteorder='little')
-                    #print("Index",int_index,"Value",int_value)
+                    print("Index",int_index,"Value",int_value)
                     push_to_index_integer(int_index, int_value)
                     # thread = threading.Thread(target=push_to_index_integer, args=(int_index, int_value))
                     # thread.start()
@@ -399,6 +420,7 @@ if __name__ == "__main__":
     "Pause": 0x13,
     "CapsLock": 0x14,
     "Esc": 0x1B,
+    "Escape": 0x1B,
     "Space": 0x20,
     "PageUp": 0x21,
     "PageDown": 0x22,
