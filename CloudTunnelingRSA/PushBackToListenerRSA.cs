@@ -16,7 +16,7 @@ namespace CloudTunnelingRSA
 
         public void PushBackBytes(RsaPublicKeyRef rsa, byte[] pushBack) {
 
-            if(rsa == null)
+            if (rsa == null)
                 return;
             if(pushBack == null)
                 return;
@@ -29,6 +29,7 @@ namespace CloudTunnelingRSA
             DicoOwnerListener.
                 Instance.GetListeners(rsa.GetObjectMemoryId(),
                 out List<OwnerListener> listeners);
+
             
             if(listeners==null)
                 return;
