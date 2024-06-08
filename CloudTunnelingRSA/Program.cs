@@ -213,12 +213,16 @@ partial class WebSocketServer
                                 await MessageBack(webSocket, "IndexLock:"+index);
                                 indexLockedOn = index;
                                 isIndexLocked = true;
-                                await MessageBack(webSocket, "Congratulation. Welcome to the server. Make yourself as at your home. :)\n\n\n");
+                                await MessageBack(webSocket, "Congratulation. Welcome to the server. :)\n\n\n");
+                                await MessageBack(webSocket, "Source code of server: https://github.com/EloiStree/2024_04_04_IndexIntegerDateTunnelingRSA:)\n");
+                                await MessageBack(webSocket, "Default Python Gate: https://github.com/EloiStree/2024_05_11_GateIID_WS_Python:)\n");
+                                await MessageBack(webSocket, "Default Unity Gate: https://github.com/EloiStree/2024_04_04_UnityServerTunnelingRSAUnity.git:)\n");
+
                                 DicoWebSocketClientConnection.Instance.Add(publicKeyRef.GetObjectMemoryId(), temp);
                                 DicoOwnerListener.Instance.AddListener(publicKeyRef.GetObjectMemoryId(), new OwnerListener() { m_connectionForCallback = webSocketContext });
 
                                 if (AppConfig.Configuration.m_allowToListenAtChanged)
-                                    await MessageBack(webSocket, "(Server return value change. This feature is temporary. The time to create a websocket dedicated to that.)");
+                                    await MessageBack(webSocket, "(Listen to valuelue change. This feature is temporary. The time to create a websocket dedicated to that.)");
                                 
 
 
