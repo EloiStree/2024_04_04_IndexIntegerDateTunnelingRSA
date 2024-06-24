@@ -24,6 +24,13 @@ public class AllowGuestRSA {
 
 
 }
+public class StaticConsoleUtility
+{
+    public static bool DebugIID = true;
+    public  static bool DebugClientConnectionError = true;
+    public static bool DebugRsaHandshake = true;
+    internal static bool DebugReceivedTextMessage=true;
+}
 
 //public class DicoIpAddressLimit {
 
@@ -55,6 +62,7 @@ partial class WebSocketServer
 
         public int m_portOfServer = 2501;
         public int m_portToListen = 2502;
+        public int m_portToBroadcastLocalOutUdp= 2503;
         public bool m_useRebroadcastLastMessage = false;
         public bool m_displayIpAddresses = true;
         public bool m_useConsolePrint = false;
@@ -71,9 +79,20 @@ partial class WebSocketServer
 
     public async Task Start(string httpListenerPrefix)
     {
+
+        
         httpListener = new HttpListener();
         httpListener.Prefixes.Add(httpListenerPrefix);
-        httpListener.Start();
+        try
+        {
+
+            httpListener.Start();
+        }
+        catch (Exception ex) { 
+            Console.WriteLine("SERVER FAIL TO LAUNCH: Need to be admin and single on the given port");
+            Environment.Exit(0);
+            return;
+        }
 
         ServerConsole.WriteLine("WebSocket server is running...");
 
@@ -94,14 +113,13 @@ partial class WebSocketServer
     }
 
 
-
     private async void ProcessWebSocketRequest(HttpListenerContext context)
     {
         HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(subProtocol: null);
 
         WebSocket webSocket = webSocketContext.WebSocket;
 
-        ServerConsole.WriteLine($"Reqiest URI {webSocketContext.RequestUri}");
+//        ServerConsole.WriteLine($"Reqiest URI {webSocketContext.RequestUri}");
         //ServerConsole.WriteLine($"Origin {webSocketContext.Origin}");
         WebSocketClientConnection temp = new WebSocketClientConnection();
         temp.m_httpConnection = webSocketContext;
@@ -119,10 +137,18 @@ partial class WebSocketServer
             byte[] buffer = new byte[BufferSize];
             byte[] receivedMessageBytes = new byte[16];
 
+            bool firstOpen = true;
 
             while (webSocket.State == WebSocketState.Open)
             {
-                if(connectionHandShake!=null)
+                if (firstOpen) {
+                    firstOpen = false;
+                    Console.WriteLine($"New Connection: {webSocketContext.RequestUri} {webSocketContext.Origin} ");
+
+                }
+                if (QuitIfWebsocketClosed(webSocket)) break;
+
+                if (connectionHandShake!=null)
                 connectionHandShake.UpdateLastActivity();
 
                 WebSocketReceiveResult result = null;
@@ -130,6 +156,7 @@ partial class WebSocketServer
                     if (buffer == null || webSocket ==null|| buffer.Length <= 12)
                         continue;
 
+                    if (!IsWebsocketOpen(webSocket)) break;
                     result= await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), token);
                     if (result == null || !result.EndOfMessage || result.Count==0 ) {
                         await Task.Delay(1);
@@ -140,7 +167,7 @@ partial class WebSocketServer
                 catch(Exception ex)
                 {
 
-                    ServerConsole.WriteLine($"Exeception: Stack:{ex.StackTrace} M:{ex.Message} S:{ ex.Source}");
+                   // ServerConsole.WriteLine($"Exeception: Stack:{ex.StackTrace} M:{ex.Message} S:{ ex.Source}");
                     await Task.Delay(1);
                     continue;
                 }
@@ -148,19 +175,23 @@ partial class WebSocketServer
                     await Task.Delay(1);
                     continue;
                 }
-                ServerConsole.WriteLine($"Received message type: {result.MessageType} {result.Count}");
+                //ServerConsole.WriteLine($"Received message type: {result.MessageType} {result.Count}");
                 ByteReceivedCount.Instance.AddByteCount(result.Count);
 
 
                 //ServerConsole.WriteLine($"BIT AS RECEIVED{string.Join(" ", receivedMessageBytes)}");
                 if (result.MessageType== WebSocketMessageType.Binary) {
 
-                   await BufferToIndexIntegerDate(webSocket, connectionHandShake, webSocketContext, buffer, receivedMessageBytes, indexLockedOn);
+                    if (QuitIfWebsocketClosed(webSocket)) break;
+                    await BufferToIndexIntegerDate(webSocket, connectionHandShake, webSocketContext, buffer, receivedMessageBytes, indexLockedOn);
                     continue;
                 }
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
+                    if (QuitIfWebsocketClosed(webSocket)) break;
                     string receivedMessage = Encoding.UTF8.GetString(buffer, 0, result.Count);
+
+                    if(StaticConsoleUtility.DebugReceivedTextMessage)
                     ServerConsole.WriteLine($">T Received message : {receivedMessage}");
 
 
@@ -170,6 +201,7 @@ partial class WebSocketServer
                         {
                             receivedMessage = receivedMessage.Substring(2);
                             byte[] bytes = Convert.FromBase64String(receivedMessage);
+
                             await BufferToIndexIntegerDate(webSocket, connectionHandShake, webSocketContext, bytes, receivedMessageBytes, indexLockedOn);
                             continue;
                         }
@@ -181,6 +213,7 @@ partial class WebSocketServer
                                 byte[] bytes = new byte[12];
                                 BitConverter.GetBytes(value).CopyTo(bytes, 0);
                                 BitConverter.GetBytes(GetTimeUTCAsLong()).CopyTo(bytes, 4);
+
                                 await BufferToIndexIntegerDate(webSocket, connectionHandShake, webSocketContext, bytes, receivedMessageBytes, indexLockedOn);
                             }
                             continue;
@@ -189,12 +222,14 @@ partial class WebSocketServer
                     }
                     else {
 
+
                         if (receivedMessage.IndexOf("SIGNED:") == 0) { 
                             string signedMessage = receivedMessage.Substring("SIGNED:".Length).Trim(' ');
                             connectionHandShake.m_signMessageReceived = signedMessage;
                             bool isValide = connectionHandShake.ComputeCurrentValidityThenReturnIsValide();
                             if (!isValide)
                             {
+
                                 await KillConnection(webSocketContext, "Signature not valid");
                                 return;
                             }
@@ -247,7 +282,8 @@ partial class WebSocketServer
 
 
                                 ConvertGivenKeyToRSAXML.TryParse(givenPublicKey, out bool foundAndConvert, out givenPublicKey);
-                                Console.WriteLine($"Given public key {foundAndConvert}: {givenPublicKey}");
+                                if (StaticConsoleUtility.DebugRsaHandshake)
+                                    Console.WriteLine($"Given public key {foundAndConvert}: {givenPublicKey}");
 
 
                                 if (!DicoRefRsaPublicKey.Instance.ContainsKey(givenPublicKey))
@@ -272,6 +308,7 @@ partial class WebSocketServer
                                     }
                                 }
                                 publicKeyRef = DicoRefRsaPublicKey.Instance.Get(givenPublicKey);
+                                if(StaticConsoleUtility.DebugRsaHandshake)
                                 ServerConsole.WriteLine($"Connection start with public key {publicKeyRef.GetObjectMemoryId()}:{publicKeyRef.GetPublicKey()}");
                                 connectionHandShake = new RsaConnectionHandShake(publicKeyRef);
                                 DicoRsaConnectionHandShake.Instance.AddHandshake(publicKeyRef, connectionHandShake);
@@ -313,13 +350,33 @@ partial class WebSocketServer
             if(publicKeyRef!=null )
                DicoWebSocketClientConnection.Instance.Remove(publicKeyRef.GetObjectMemoryId());
 
-            await MessageBack(webSocket, "Exception: " + ex.StackTrace);
-            if (webSocketContext!=null && webSocketContext.WebSocket!=null)
+            if (IsWebsocketOpen(webSocket)) { 
+                await MessageBack(webSocket, "Exception: " + ex.StackTrace);
+            }
+            if (IsWebsocketOpen(webSocketContext))
                 await KillConnection(webSocketContext, "Exception: " + ex.StackTrace);
-            ServerConsole.WriteLine($"Error: {ex.StackTrace}");
+            if (StaticConsoleUtility.DebugClientConnectionError) { 
+                ServerConsole.WriteLine($"Error: {ex.StackTrace}");
+            }
         }
         token.ThrowIfCancellationRequested();
         ServerConsole.WriteLine($"End Connection {webSocketContext.RequestUri}");
+        Console.WriteLine("End Connection");
+    }
+
+    private bool IsWebsocketOpen(HttpListenerWebSocketContext webSocketContext)
+    {
+        return webSocketContext != null && IsWebsocketOpen(webSocketContext.WebSocket);
+    }
+
+    public bool IsWebsocketOpen(WebSocket webSocket)
+    {
+        return webSocket != null && (webSocket.State == WebSocketState.Connecting || webSocket.State == WebSocketState.Open);
+    }
+
+    private bool QuitIfWebsocketClosed(WebSocket webSocket)
+    {
+        return webSocket==null || webSocket.State != WebSocketState.Open;
     }
 
     private ulong GetTimeUTCAsLong()
@@ -359,9 +416,13 @@ partial class WebSocketServer
             BitConverter.GetBytes(indexLockedOn).CopyTo(receivedMessageBytes, 0);
             int value = BitConverter.ToInt32(receivedMessageBytes, 4);
             ulong timeStampUtc = BitConverter.ToUInt64(receivedMessageBytes, 8);
-            ServerConsole.WriteLine($"Index:{indexLockedOn} Value:{value} TimeStampUtc:{timeStampUtc}");
+            if (StaticConsoleUtility.DebugIID)
+               ServerConsole.WriteLine($"Index:{indexLockedOn} Value:{value} TimeStampUtc:{timeStampUtc}");
             DicoIndexIntegerDate.Instance.Set(
                     indexLockedOn, value, timeStampUtc, out bool changed);
+
+
+            PushToLocalUdpExit(indexLockedOn, value, timeStampUtc);
 
             bool useNeedChangeAntiSpam=false;
             if (useNeedChangeAntiSpam) { 
@@ -392,6 +453,28 @@ partial class WebSocketServer
             await KillConnection(webSocketContext, "Validate RSA connection before sending bytes data.");
             return;
         }
+    }
+
+    UdpClient udpClientOut = null;
+    IPEndPoint endPointOut = null;
+    private void PushToLocalUdpExit(int indexLockedOn, int value, ulong timeStampUtc)
+    {
+        if (AppConfig.Configuration.m_portToBroadcastLocalOutUdp <= 0)
+            return;
+
+        if (udpClientOut == null) { 
+            udpClientOut = new UdpClient();
+            int port = AppConfig.Configuration.m_portToBroadcastLocalOutUdp;
+            endPointOut = new IPEndPoint(IPAddress.Parse("127.0.0.1"), port);
+           
+        }
+
+        byte[] bytes = new byte[16];
+        BitConverter.GetBytes(indexLockedOn).CopyTo(bytes, 0);
+        BitConverter.GetBytes(value).CopyTo(bytes, 4);
+        BitConverter.GetBytes(timeStampUtc).CopyTo(bytes, 8);
+        udpClientOut.Send(bytes, bytes.Length, endPointOut);
+
     }
 
 
@@ -493,8 +576,7 @@ partial class WebSocketServer
         {
             return;
         }
-
-        ServerConsole.WriteLine($"Message back: {messageCallBack}");
+        //ServerConsole.WriteLine($"Message back: {messageCallBack}");
         byte[] reply = Encoding.UTF8.GetBytes(messageCallBack);
     await webSocket.SendAsync(new ArraySegment<byte>(reply), WebSocketMessageType.Text, true, CancellationToken.None);
 }
@@ -539,6 +621,7 @@ public class TimeWatch
     public static void End() { m_endTime = DateTime.Now; }
     public static double GetSeconds() { return (m_endTime - m_startTime).TotalSeconds; }
 }
+
 
 
 class Program

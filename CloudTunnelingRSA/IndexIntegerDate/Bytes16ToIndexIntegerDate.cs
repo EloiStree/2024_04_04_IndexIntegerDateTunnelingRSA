@@ -110,7 +110,7 @@ namespace CloudTunnelingRSA.IndexIntegerDate
             changeDetected = false;
             if (m_dicoIndexIntegerDate.ContainsKey(index))
             {
-                ServerConsole.WriteLine($"???? {m_dicoIndexIntegerDate[index].value}  {value}");
+                //ServerConsole.WriteLine($"???? {m_dicoIndexIntegerDate[index].value}  {value}");
 
                 if (m_dicoIndexIntegerDate[index].value != value)
                 {
@@ -124,7 +124,7 @@ namespace CloudTunnelingRSA.IndexIntegerDate
                 changeDetected = true;
             }
 
-            ServerConsole.WriteLine($"Attempt to change {changeDetected}: {index}  {value}  {timeStampUtc} ");
+           // ServerConsole.WriteLine($"Attempt to change {changeDetected}: {index}  {value}  {timeStampUtc} ");
         }
 
     }

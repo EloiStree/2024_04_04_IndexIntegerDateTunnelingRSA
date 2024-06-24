@@ -15,7 +15,7 @@ namespace CloudTunnelingRSA
                 publicKey.Contains("PUBLIC") &&
                 publicKey.Contains("KEY"))
             {
-                Console.WriteLine("PUBLIC RSA KEY 1024 PEM");
+                //Console.WriteLine("PUBLIC RSA KEY 1024 PEM");
                 resultXmlKey = PemToXmlConverter.ConvertPublicKey(publicKey);
 
                 foundAndConvert = true;
@@ -23,14 +23,14 @@ namespace CloudTunnelingRSA
             else if (publicKey.Contains("<RSAKeyValue>"))
             {
 
-                Console.WriteLine("PUBLIC RSA KEY 1024 XML");
+                //Console.WriteLine("PUBLIC RSA KEY 1024 XML");
                 resultXmlKey = publicKey;
 
                 foundAndConvert = true;
             }
             else { 
             
-                Console.WriteLine("PUBLIC RSA KEY 1024 NOT FOUND");
+                //Console.WriteLine("PUBLIC RSA KEY 1024 NOT FOUND");
                 resultXmlKey = "";
             }
 
